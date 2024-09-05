@@ -7,6 +7,8 @@ package "local-rings" where
 lean_lib «LocalRings» where
   -- add library configuration options here
 
+require mathlib from git "https://github.com/leanprover-community/mathlib4" @ "master"
+
 @[default_target]
 lean_exe "local-rings" where
-  root := `Main
+  root := `LocalRings
