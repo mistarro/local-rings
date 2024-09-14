@@ -1,13 +1,12 @@
 import Mathlib.Algebra.Algebra.Defs
+import Mathlib.Algebra.Algebra.Hom
+import Mathlib.Algebra.Algebra.Prod
 import Mathlib.Algebra.Algebra.Subalgebra.Basic
 import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Units.Hom
-import Mathlib.Data.Set.Basic
 import Mathlib.RingTheory.LocalRing.Defs
+import Mathlib.RingTheory.LocalRing.Basic
 import Mathlib.RingTheory.LocalRing.RingHom.Basic
 import Mathlib.RingTheory.Ideal.QuotientOperations
-
-import Mathlib.Tactic
 
 variable {R : Type*}
 variable [CommRing R]
@@ -123,7 +122,7 @@ theorem isLocal_of_map_local {S : Type*} [Nontrivial S] [CommRing S] (f : R →+
     use a, haB
     rw [RingHom.restrict_apply]
 
-variable {F A : Type*}
+variable {F A : Type u}
 variable [Field F] [CommRing A] [Algebra F A]
 
 /-- All scalars in an `F`-algebra are local. -/
@@ -169,27 +168,54 @@ def algebra_fromRingHom {R A B : Type*} [CommSemiring R] [CommSemiring A] [CommS
     [Algebra R A] (f : A →+* B) : Algebra R B :=
   (f.comp (algebraMap R A)).toAlgebra
 
-/-- A non-local `F`-algebra is locally generated iff there are two field extensions
-    `F ⊆ K₁, K₂` such that the `F`-algebra `K₁ × K₂` is locally generated. -/
-theorem nonlocal_locally_generated_iff_2_fields_prod:
-  (∀ {K₁ K₂ : Type u} [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂],
-    ¬isLocallyGenerated F (K₁ × K₂)) ↔ (∀ {A : Type u} [CommRing A] [Algebra F A] [Nontrivial A], isLocallyGenerated F A → LocalRing A) := by
-  constructor
-  · intro hkk A _ _ _ h
-    rw [←nonLocalRing_iff_image_prod_of_2_fields]
-    intro K₁ K₂ _ _ f
-    -- Introduce compatible `F`-algebra structures
-    let algKK : Algebra F (K₁ × K₂) := algebra_fromRingHom f
-    let algK₁ : Algebra F K₁ := algebra_fromRingHom (RingHom.fst K₁ K₂)
-    let algK₂ : Algebra F K₂ := algebra_fromRingHom (RingHom.snd K₁ K₂)
-    -- Promote `f` to an `F`-algebra homomorphism.
-    let f' : A →ₐ[F] (K₁ × K₂) := by
-      apply AlgHom.mk' f
-      intro c x
-      simp_all [Algebra.smul_def]
-      rfl
-    by_contra hf
-    exact hkk (K₁ := K₁) (K₂ := K₂) (locallyGenerated_surjective f' hf h)
-  · intro h K₁ K₂ _ _ _ _
-    by_contra hkk
-    exact nonLocalRing_if_prod_of_2 K₁ K₂ (h hkk)
+variable {K₁ K₂ : Type u} [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂]
+
+/-- Property of two field extenstions `K₁`, `K₂` of `F`:
+    if both satisfy `Q`, then `K₁ × K₂` is not locally generated over `F`. -/
+def notLocallyGeneratedKK_if (Q : Type u → Prop) (F K₁ K₂ : Type u)
+    [Field F] [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂] : Prop :=
+    Q K₁ → Q K₂ → ¬isLocallyGenerated F (K₁ × K₂)
+
+/-- Generic form: given
+      * `hPQ`: proof that `P A` implies `Q K` given a surjective `f : A →ₐ[F] B`
+      * `hKK`: proof that `K₁ × K₂` is not locally generated if `Q K₁` and `Q K₂`
+    an `F`-algebra `A` is local if it satisfies `P A` and is locally generated. -/
+theorem isLocalRing_if_isLocallyGenerated [Nontrivial A] {P Q : Type u → Prop}
+    (hPQ : ∀ {F A K : Type u} [Field F] [CommRing A] [Algebra F A] [Field K] [Algebra F K] (f : A →ₐ[F] K), Function.Surjective f → P A → Q K)
+    (hKK : ∀ (F K₁ K₂ : Type u) [Field F] [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂], notLocallyGeneratedKK_if Q F K₁ K₂)
+    (h : P A) (hLG : isLocallyGenerated F A) : LocalRing A := by
+  by_contra hNonLocalA
+  obtain ⟨K₁, K₂, fK₁, fK₂, f', hf⟩ := nonLocalProj hNonLocalA
+  -- Introduce compatible `F`-algebra structures
+  let algKK : Algebra F (K₁ × K₂) := algebra_fromRingHom f'
+  let algK₁ : Algebra F K₁ := algebra_fromRingHom (RingHom.fst K₁ K₂)
+  let algK₂ : Algebra F K₂ := algebra_fromRingHom (RingHom.snd K₁ K₂)
+  -- Promote `f'` to an `F`-algebra homomorphism.
+  let f : A →ₐ[F] (K₁ × K₂) := by
+    apply AlgHom.mk' f'
+    intro _ _
+    simp_all [Algebra.smul_def]
+    rfl
+  /- compose `f` with projections on `K₁`... -/
+  let f₁ := (AlgHom.fst F K₁ K₂).comp f
+  have hf₁ : Function.Surjective f₁ := by
+    simpa using Function.Surjective.comp Prod.fst_surjective hf
+  /- ... and `K₂` -/
+  let f₂ := (AlgHom.snd F K₁ K₂).comp f
+  have hf₂ : Function.Surjective f₂ := by
+    simpa using Function.Surjective.comp Prod.snd_surjective hf
+  exact hKK F K₁ K₂ (hPQ f₁ hf₁ h) (hPQ f₂ hf₂ h) (locallyGenerated_surjective f hf hLG)
+
+/-- For finite fields `K₁`, `K₂` extending `F`, the `F`-algebra `K₁ × K₂`
+    is not locally generated. -/
+theorem notLocallyGenerated_KK_ifFinite (F K₁ K₂ : Type u)
+    [Field F] [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂] :
+    notLocallyGeneratedKK_if Finite F K₁ K₂ := by
+  intro hfK₁ hfK₂ h
+  sorry
+
+theorem isLocalRing_if_isLocallyGenerated_finite [Nontrivial A]
+    (h : Finite A) (hLG : isLocallyGenerated F A) : LocalRing A := by
+  refine isLocalRing_if_isLocallyGenerated ?_ notLocallyGenerated_KK_ifFinite h hLG
+  intro _ _ _ _ _ _ _ _ f hf hA
+  exact hA.of_surjective f hf
