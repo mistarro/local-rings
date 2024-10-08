@@ -1,22 +1,20 @@
-import Mathlib.Algebra.Algebra.Defs
 import Mathlib.Algebra.Algebra.Hom
 import Mathlib.Algebra.Algebra.Prod
 import Mathlib.Algebra.Algebra.Subalgebra.Basic
-import Mathlib.Algebra.Field.Defs
 import Mathlib.Algebra.Field.Basic
-import Mathlib.Algebra.GroupWithZero.Hom
+import Mathlib.Algebra.Module.Submodule.Ker
 import Mathlib.Algebra.Ring.Hom.Defs
-import Mathlib.FieldTheory.PurelyInseparable
-import Mathlib.RingTheory.Ideal.QuotientOperations
+
+import Mathlib.LinearAlgebra.Prod
+
 import Mathlib.RingTheory.LocalRing.Defs
 import Mathlib.RingTheory.LocalRing.Basic
 import Mathlib.RingTheory.LocalRing.RingHom.Basic
-import Mathlib.RingTheory.IntegralClosure.Algebra.Basic
 import Mathlib.RingTheory.Trace.Basic
 
-import Mathlib.RingTheory.Nilpotent.Basic
-
-import LocalRings.Utils
+import LocalRings.Utils.Module
+import LocalRings.Utils.PurelyInseparable
+import LocalRings.Utils.Ring
 
 variable (F : Type u)
 variable {A A' : Type u}
@@ -161,28 +159,34 @@ theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
   intro fdK₁ fdK₂ h
   haveI : FiniteDimensional F K₁ := fdK₁
   haveI : FiniteDimensional F K₂ := fdK₂
-  obtain ⟨L, _, _, ι₁, ι₂, ⟨inj_ι₁, inj_ι₂, rank_le⟩⟩ := compositum F K₁ K₂
   let E₁ := separableClosure F K₁
   let E₂ := separableClosure F K₂
   haveI : IsPurelyInseparable E₁ K₁ := separableClosure.isPurelyInseparable F K₁
   haveI : IsPurelyInseparable E₂ K₂ := separableClosure.isPurelyInseparable F K₂
   letI p := ringExpChar F
   haveI : ExpChar F p := inferInstance
-  let r₁ : ℕ := finInsepLogRank E₂ K₂ p - finInsepLogRank E₁ K₁ p
-  let r₂ : ℕ := finInsepLogRank E₁ K₁ p - finInsepLogRank E₂ K₂ p
+  let r₁ : ℕ := finInsepLogRank E₁ K₁ p
+  let r₂ : ℕ := finInsepLogRank E₂ K₂ p
+  let r := max r₁ r₂
+  let s₁ : ℕ := r - r₁
+  let s₂ : ℕ := r - r₂
+  have hrs₁ : r₁ + s₁ = r := by simp only [s₁, add_tsub_cancel_of_le (le_max_left r₁ r₂)]
+  have hrs₂ : r₂ + s₂ = r := by simp only [s₂, add_tsub_cancel_of_le (le_max_right r₁ r₂)]
   let b₁ := FiniteDimensional.finrank F E₁
   let b₂ := FiniteDimensional.finrank F E₂
   let d : ℕ := Nat.gcd b₁ b₂
   have hd : 0 < d := by
     apply Nat.gcd_pos_of_pos_left
     apply FiniteDimensional.finrank_pos
-  let a₁ := b₁ / d
-  let a₂ := b₂ / d
-  have a_coprime : Nat.gcd a₁ a₂ = 1 := by
+  let a₁' := b₁ / d
+  let a₂' := b₂ / d
+  have a_coprime : Nat.gcd a₁' a₂' = 1 := by
     have := Nat.gcd_div (Nat.gcd_dvd_left b₁ b₂) (Nat.gcd_dvd_right b₁ b₂)
     rw [Nat.div_self hd] at this
     exact this
-  have a_nonzero : (a₁ : F) ≠ 0 ∨ (a₂ : F) ≠ 0 := by
+  let a₁ := (a₁' : F)
+  let a₂ := (a₂' : F)
+  have a_nonzero : a₁ ≠ 0 ∨ a₂ ≠ 0 := by
     by_contra h1
     push_neg at h1
     /- The following is simpler but requires `p : ℕ` and `ExpChar F p` as parameters:
@@ -197,21 +201,29 @@ theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
     by_cases h : p = 1
     · haveI := ExpChar.congr F p h
       haveI := charZero_of_expChar_one' F
-      simp [Nat.cast_eq_zero] at h1
+      simp [a₁, a₂, Nat.cast_eq_zero] at h1
       simp [h1.1, h1.2] at a_coprime
     · haveI := charP_of_expChar_prime' (R := F) h
       simp only [CharP.cast_eq_zero_iff F p] at h1
       rw [← Nat.dvd_gcd_iff, a_coprime, Nat.dvd_one] at h1
       exact h h1
-  let T : K₁ × K₂ → F := fun ⟨x₁, x₂⟩ =>
-    a₁ * Algebra.trace F E₁ (iterateFrobenius E₁ p r₁ (iRed E₁ K₁ x₁)) -
-    a₂ * Algebra.trace F E₂ (iterateFrobenius E₂ p r₂ (iRed E₂ K₂ x₂))
+
+  let σ := iterateFrobenius F p r
+  let T₁ : K₁ × K₂ →ₛₗ[σ] F := by
+    simp [σ]
+    rw [← hrs₁]
+    exact ((Algebra.trace F E₁).comp (iRed_frobₛₗ F E₁ K₁ p s₁)).comp (LinearMap.fst F K₁ K₂)
+  -- will try to reduce this duplication
+  let T₂ : K₁ × K₂ →ₛₗ[σ] F := by
+    simp [σ]
+    rw [← hrs₂]
+    exact ((Algebra.trace F E₂).comp (iRed_frobₛₗ F E₂ K₂ p s₂)).comp (LinearMap.snd F K₁ K₂)
+  let T : K₁ × K₂ →ₛₗ[σ] F := a₁ • T₁ - a₂ • T₂
+  let U : Subspace F (K₁ × K₂) := LinearMap.ker T
   /-
     Things to show:
-      1. `U = {(x₁, x₂) ∈ K₁ × K₂ | T(x₁, x₂) = 0}` is an `F`-linear subspace of `K₁ × K₂`
-         `T` is not fully `F`-linear but it is additive and `T(x₁, x₂) = 0 → T(a * x₁, a * x₂) = 0`
-      2. `T(x₁, x₂)` is not `0` everywhere (so `U` is proper)
-      3. `T` vanishes on local elements (so local elements are in `U`)
+      1. `T ≠ 0`
+      2. `T` vanishes on local elements (so all local elements are in `U`)
    -/
   sorry
 
