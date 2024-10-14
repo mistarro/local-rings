@@ -15,6 +15,7 @@ import Mathlib.RingTheory.Trace.Basic
 import LocalRings.Utils.Module
 import LocalRings.Utils.PurelyInseparable
 import LocalRings.Utils.Ring
+import LocalRings.Utils.Trace
 
 variable (F : Type u)
 variable {A A' : Type u}
@@ -36,10 +37,9 @@ theorem all_local_if_local [LocalRing A] (a : A) : isLocalElement F a := by
 theorem local_if_all_local [Nontrivial A] (ha : ∀ a : A, isLocalElement F a) : LocalRing A := by
   apply LocalRing.of_isUnit_or_isUnit_one_sub_self
   intro a
-  -- a is local so there is B : Subring R, LocalRing B ∧ a ∈ B,
   obtain ⟨B, ⟨hB, haB⟩⟩ := ha a
-  -- if `a` is a unit in `B`, then it is a unit in `R`
-  -- if `1 - a` is a unit in `B`, then it is a unit in `R`
+  /- if `a` is a unit in `B`, then it is a unit in `R`
+     if `1 - a` is a unit in `B`, then it is a unit in `R` -/
   let aa : B := ⟨a, haB⟩
   let bb : B := 1 - aa
   exact Or.imp
@@ -47,37 +47,46 @@ theorem local_if_all_local [Nontrivial A] (ha : ∀ a : A, isLocalElement F a) :
     (isUnit_subring (S := B.toSubring) (a := bb))
     (by apply LocalRing.isUnit_or_isUnit_one_sub_self aa)
 
+/-- A power of a local element is a local element. -/
+theorem isLocalElement_pow {a : A} (ha : isLocalElement F a) (n : ℕ) : isLocalElement F (a ^ n) := by
+  obtain ⟨B, ⟨hB, haB⟩⟩ := ha
+  use B
+  exact ⟨hB, Subalgebra.pow_mem B haB n⟩
+
 /-- A homomorphism of rings maps local elements to local elements. -/
 theorem isLocalElement_map [Nontrivial A'] (f : A →ₐ[F] A')
     {a : A} (ha : isLocalElement F a) : isLocalElement F (f a) := by
-  -- B := local subalgebra containing a
   obtain ⟨B, ⟨hB, haB⟩⟩ := ha
-  -- g : ↥B →+* A'
+  /- g : B →+* A' -/
   let g := f.comp (B.val)
   use g.range
   apply And.intro
-  · -- goal: `g.range` is a local ring
+  · /- goal: `g.range` is a local ring -/
     exact LocalRing.of_surjective' g.rangeRestrict (g.rangeRestrict_surjective)
-  · -- goal: `f a ∈ g.range`
+  · /- goal: `f a ∈ g.range` -/
     rw [AlgHom.mem_range, Subtype.exists]
     use a, haB
     rfl
 
+/-- Set of all local elements of an `F`-algebra `A` -/
+def localElements (A : Type u) [CommRing A] [Algebra F A] : Set A :=
+  {a : A | isLocalElement F a}
+
 /-- An `F`-algebra `A` is *locally generated* if the local elements of `A`
     generate `A` as a vector space over `F`. -/
 def isLocallyGenerated (A : Type u) [CommRing A] [Algebra F A] : Prop :=
-  Submodule.span F {a : A | isLocalElement F a} = ⊤
+  Submodule.span F (localElements F A) = ⊤
 
 /-- If `F`-algebra `A` is locally generated and `f : A → A'` is a surjective `F`-algebra
     homomorphism, then `F`-algebra `B` is also locally generated. -/
 lemma isLocallyGenerated_surjective [Nontrivial A'] (f : A →ₐ[F] A')
     (hf : Function.Surjective f) (h : isLocallyGenerated F A) : isLocallyGenerated F A' := by
-  let lA := {a : A | isLocalElement F a}
-  let lA' := {a' : A' | isLocalElement F a'}
+  let lA := localElements F A
+  let lA' := localElements F A'
   have h1 : f '' lA ⊆ lA' := by
     intro y hy
     obtain ⟨x, ⟨hx, hfxy⟩⟩ := hy
-    rw [Set.mem_setOf_eq, ← hfxy] at *
+    simp [Set.mem_setOf_eq, ← hfxy] at *
     exact isLocalElement_map F f hx
   have h2 : (Submodule.span F lA).map f ≤ Submodule.span F lA' :=
     span_transfer (f := f.toLinearMap) h1
@@ -99,11 +108,11 @@ theorem isLocalRing_if_isLocallyGenerated [Nontrivial A]
     (h : P F A) (hLG : isLocallyGenerated F A) : LocalRing A := by
   by_contra hNonLocalA
   obtain ⟨K₁, K₂, fK₁, fK₂, f', hf⟩ := nonLocalProj hNonLocalA
-  -- Introduce compatible `F`-algebra structures
+  /- introduce compatible `F`-algebra structures -/
   let algKK : Algebra F (K₁ × K₂) := algebra_fromRingHom f'
   let algK₁ : Algebra F K₁ := algebra_fromRingHom (RingHom.fst K₁ K₂)
   let algK₂ : Algebra F K₂ := algebra_fromRingHom (RingHom.snd K₁ K₂)
-  -- Promote `f'` to an `F`-algebra homomorphism.
+  /- promote `f'` to an `F`-algebra homomorphism -/
   let f : A →ₐ[F] (K₁ × K₂) := by
     apply AlgHom.mk' f'
     intro _ _
@@ -119,12 +128,26 @@ theorem isLocalRing_if_isLocallyGenerated [Nontrivial A]
     simpa using Function.Surjective.comp Prod.snd_surjective hf
   exact hKK F K₁ K₂ (hPQ f₁ hf₁ h) (hPQ f₂ hf₂ h) (isLocallyGenerated_surjective F f hf hLG)
 
+/- Auxiliary lemma to workaround problems with typeclass search. -/
+lemma finrank_equality_aux
+    (E₁ : IntermediateField F K₁) (E₂ : IntermediateField F K₂)
+    (h : FiniteDimensional.finrank F E₁ = FiniteDimensional.finrank F E₂) :
+    FiniteDimensional.finrank F K₂ * FiniteDimensional.finrank E₁ K₁ =
+    FiniteDimensional.finrank F K₁ * FiniteDimensional.finrank E₂ K₂ := by
+  have h₁ := FiniteDimensional.finrank_mul_finrank F E₁ K₁
+  have h₂ := FiniteDimensional.finrank_mul_finrank F E₂ K₂
+  rw [← h₁, ← h₂, mul_comm, ← mul_assoc]
+  apply congrArg (fun (x : ℕ) => x * FiniteDimensional.finrank E₂ K₂)
+  rw [mul_comm]
+  apply congrArg (fun (x : ℕ) => x * FiniteDimensional.finrank E₁ K₁)
+  exact h.symm
+
 section FiniteDimensional
 
 variable [FiniteDimensional F K₁] [FiniteDimensional F K₂]
 
 /-- If `(a₁, a₂) : K₁ × K₂` is local then `minpoly F a₁ = minpoly F a₂` -/
-lemma local_minpoly_eq (a₁ : K₁) (a₂ : K₂) (h1 : isLocalElement F (a₁, a₂)) :
+lemma local_minpoly_eq {a₁ : K₁} {a₂ : K₂} (h1 : isLocalElement F (a₁, a₂)) :
     minpoly F a₁ = minpoly F a₂ := by
   let μ₁ := minpoly F a₁
   have int_a₁ : IsIntegral F a₁ := IsIntegral.of_finite F a₁
@@ -149,7 +172,13 @@ lemma local_minpoly_eq (a₁ : K₁) (a₂ : K₂) (h1 : isLocalElement F (a₁,
     hμ₁a₂0
     (minpoly.monic int_a₁)
 
+/-- Uniform definition of `FiniteDimensional` to be used in the generic theorem.
+    Original definition is:
+      FiniteDimensional (K : Type u_1) (V : Type u_2) [DivisionRing K] [AddCommGroup V] [Module K V] : Prop
+  -/
 def UFiniteDimensional (F A : Type u) [Field F] [CommRing A] [Algebra F A] : Prop := FiniteDimensional F A
+
+open scoped IntermediateField
 
 /-- For finite extensions `K₁`, `K₂` of `F`, the `F`-algebra `K₁ × K₂`
     is not locally generated. -/
@@ -178,10 +207,12 @@ theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
   have hd : 0 < d := by
     apply Nat.gcd_pos_of_pos_left
     apply FiniteDimensional.finrank_pos
+  have hb₁d : d ∣ b₁ := Nat.gcd_dvd_left b₁ b₂
+  have hb₂d : d ∣ b₂ := Nat.gcd_dvd_right b₁ b₂
   let a₁' := b₁ / d
   let a₂' := b₂ / d
   have a_coprime : Nat.gcd a₁' a₂' = 1 := by
-    have := Nat.gcd_div (Nat.gcd_dvd_left b₁ b₂) (Nat.gcd_dvd_right b₁ b₂)
+    have := Nat.gcd_div hb₁d hb₂d
     rw [Nat.div_self hd] at this
     exact this
   let a₁ := (a₁' : F)
@@ -209,25 +240,98 @@ theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
       exact h h1
 
   let σ := iterateFrobenius F p r
-  let T₁ : K₁ × K₂ →ₛₗ[σ] F := by
-    simp [σ]
-    rw [← hrs₁]
-    exact ((Algebra.trace F E₁).comp (iRed_frobₛₗ F E₁ K₁ p s₁)).comp (LinearMap.fst F K₁ K₂)
-  -- will try to reduce this duplication
-  let T₂ : K₁ × K₂ →ₛₗ[σ] F := by
-    simp [σ]
-    rw [← hrs₂]
-    exact ((Algebra.trace F E₂).comp (iRed_frobₛₗ F E₂ K₂ p s₂)).comp (LinearMap.snd F K₁ K₂)
-  let T : K₁ × K₂ →ₛₗ[σ] F := a₁ • T₁ - a₂ • T₂
+  haveI := RingHomCompTriple.iterateFrobenius F p hrs₁
+  haveI := RingHomCompTriple.iterateFrobenius F p hrs₂
+  let T₁ := ((Algebra.trace F E₁).comp (iRed_frobₛₗ F E₁ K₁ p s₁ σ)).comp (LinearMap.fst F K₁ K₂)
+  let T₂ := ((Algebra.trace F E₂).comp (iRed_frobₛₗ F E₂ K₂ p s₂ σ)).comp (LinearMap.snd F K₁ K₂)
+  let T : K₁ × K₂ →ₛₗ[σ] F := a₂ • T₁ - a₁ • T₂
   let U : Subspace F (K₁ × K₂) := LinearMap.ker T
-  /-
-    Things to show:
-      1. `T ≠ 0`
-      2. `T` vanishes on local elements (so all local elements are in `U`)
-   -/
-  sorry
+  /- Show `T ≠ 0` -/
+  have hT1 : T ≠ 0 := by
+    simp [DFunLike.ne_iff]
+    cases a_nonzero with
+    | inl ha₁ =>
+        have h := nontrivial_trace_iRed_frob F E₂ K₂ p s₂ σ
+        simp [T₂, DFunLike.ne_iff] at h ⊢
+        obtain ⟨x, hx⟩ := h
+        use 0, x
+        simp [T, T₁, T₂]
+        exact ⟨ha₁, hx⟩
+    | inr ha₂ =>
+        have h := nontrivial_trace_iRed_frob F E₁ K₁ p s₁ σ
+        simp [T₁, DFunLike.ne_iff] at h ⊢
+        obtain ⟨x, hx⟩ := h
+        use x, 0
+        simp [T, T₁, T₂]
+        exact ⟨ha₂, hx⟩
+  have hU_ne_top : U ≠ ⊤ := by
+    intro h
+    exact hT1 <| LinearMap.ker_eq_top.mp h
+  /- Show that `T` vanishes on local elements -/
+  have hT2 : localElements F (K₁ × K₂) ⊆ U := by
+    intro α hα
+    simp [localElements, Set.mem_setOf_eq] at hα
+    simp [U]
+    obtain ⟨α₁, α₂⟩ := α
 
-/-- Finite algebras are local if they are locally generated. -/
+    simp [T, T₁, T₂]
+    rw [sub_eq_zero]
+
+    let β₁ : E₁ := iRed_frobₛₗ F E₁ K₁ p s₁ σ α₁
+    let β₂ : E₂ := iRed_frobₛₗ F E₂ K₂ p s₂ σ α₂
+
+    /- replace goal to simplify -/
+    suffices a₂ * (Algebra.trace F E₁ β₁) = a₁ * (Algebra.trace F E₂ β₂) by exact this
+
+    have hβ₁α₁ : algebraMap E₁ K₁ β₁ = α₁ ^ p ^ r := by
+      rw [← hrs₁]
+      exact iRed_frobₛₗ_algebraMap' F E₁ K₁ p s₁ α₁ σ
+    have hβ₂α₂ : algebraMap E₂ K₂ β₂ = α₂ ^ p ^ r := by
+      rw [← hrs₂]
+      exact iRed_frobₛₗ_algebraMap' F E₂ K₂ p s₂ α₂ σ
+
+    /- if `α` is local then so is `α ^ p ^ r` -/
+    replace hα := isLocalElement_pow F hα (p ^ r)
+    simp at hα
+    replace hα := local_minpoly_eq F hα
+    rw [← hβ₁α₁, ← hβ₂α₂,
+      minpoly.algebraMap_eq (algebraMap E₁ K₁).injective,
+      minpoly.algebraMap_eq (algebraMap E₂ K₂).injective] at hα
+
+    have hβ₁i : IsIntegral F β₁ := IsSeparable.isIntegral (Algebra.IsSeparable.isSeparable F β₁)
+    have hβ₂i : IsIntegral F β₂ := IsSeparable.isIntegral (Algebra.IsSeparable.isSeparable F β₂)
+
+    have h_finrank := IntermediateField.adjoin.finrank hβ₁i
+    rw [hα, ← IntermediateField.adjoin.finrank hβ₂i] at h_finrank
+    have h_nextCoeff := congrArg Polynomial.nextCoeff hα
+
+    rw [trace_minpoly F β₁, trace_minpoly F β₂,
+      show a₁ = (a₁' : F) by rfl,
+      show a₂ = (a₂' : F) by rfl,
+      ← mul_assoc, ← mul_assoc,
+      h_nextCoeff]
+
+    norm_cast
+
+    apply congrArg (fun (x : F) => x * -(minpoly F β₂).nextCoeff)
+    apply congrArg Nat.cast
+
+    simp [a₁', a₂']
+    rw [mul_comm, mul_comm (b₁ / d) _]
+    apply Nat.eq_of_mul_eq_mul_right hd
+    rw [mul_assoc, Nat.div_mul_cancel hb₂d, mul_assoc, Nat.div_mul_cancel hb₁d]
+    rw [mul_comm, mul_comm _ b₁]
+    simp [b₁, b₂]
+
+    exact finrank_equality_aux F F⟮β₁⟯ F⟮β₂⟯ h_finrank
+
+  have h_contra : Submodule.span F (localElements F (K₁ × K₂)) < ⊤ :=
+    lt_of_le_of_lt
+      (Submodule.span_le.mpr hT2) /- local span ≤ U -/
+      (lt_top_iff_ne_top.mpr hU_ne_top) /- U < ⊤ -/
+  exact (lt_top_iff_ne_top.mp h_contra) h
+
+/-- Finite-dimensional algebras are local if they are locally generated. -/
 theorem isLocalRing_if_isLocallyGenerated_findim [Nontrivial A]
     (h : UFiniteDimensional F A) (hLG : isLocallyGenerated F A) : LocalRing A := by
   refine isLocalRing_if_isLocallyGenerated F ?_ notLocallyGenerated_KK_if_findim h hLG

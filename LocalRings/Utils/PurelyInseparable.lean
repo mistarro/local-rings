@@ -130,21 +130,20 @@ lemma IsPurelyInseparable.minpoly_natDegree (a : K) : (minpoly F a).natDegree = 
 
 noncomputable def iRed_aux (a : K) : F := - Polynomial.aeval 0 (minpoly F a) /- `= - (minpoly F a).coeff 0` -/
 
-lemma iRed_aux_algebraMap (a : K) : algebraMap F K (iRed_aux F a) = a ^ p ^ (finInsepLogRank F F⟮a⟯ p) := by
-  rw [← IsPurelyInseparable.minpoly_natDegree F p a]
-  obtain ⟨k, b, h⟩ := IsPurelyInseparable.minpoly_eq_X_pow_sub_C F p a
-  simp [h, iRed_aux, zero_pow <| pow_ne_zero k <| pos_iff_ne_zero.mp <| expChar_pos F p]
-  have h1 := minpoly.aeval F a
-  simp [h, sub_eq_zero] at h1
-  exact h1.symm
-
 variable (K) in
 noncomputable def iRed' : K → F := fun a : K => (iRed_aux F a) ^ p ^ finInsepLogRank F⟮a⟯ K p
 
 lemma iRed'_algebraMap (a : K) : algebraMap F K (iRed' F K p a) = a ^ p ^ finInsepLogRank F K p := by
+  have iRed_aux_algebraMap : algebraMap F K (iRed_aux F a) = a ^ p ^ (finInsepLogRank F F⟮a⟯ p) := by
+    rw [← IsPurelyInseparable.minpoly_natDegree F p a]
+    obtain ⟨k, b, h⟩ := IsPurelyInseparable.minpoly_eq_X_pow_sub_C F p a
+    simp [h, iRed_aux, zero_pow <| pow_ne_zero k <| pos_iff_ne_zero.mp <| expChar_pos F p]
+    have h1 := minpoly.aeval F a
+    simp [h, sub_eq_zero] at h1
+    exact h1.symm
   rw [iRed',
     RingHom.map_pow (algebraMap F K) (iRed_aux F a) (p ^ finInsepLogRank F⟮a⟯ K p),
-    iRed_aux_algebraMap F p a,
+    iRed_aux_algebraMap,
     ← pow_mul, ← pow_add,
     finInsepLogRank_tower]
 
@@ -195,23 +194,22 @@ end PurelyInseparable
 
 section SemiLinear
 
-variable (F E K : Type u) [Field F] [Field E] [Field K] [Algebra F E] [Algebra E K] [Algebra F K] [IsScalarTower F E K]
+variable (F E K : Type u) [Field F] [Field E] [Field K] [Algebra F E] [Algebra E K] [Algebra F K]
+  [IsScalarTower F E K]
 variable [FiniteDimensional E K] [IsPurelyInseparable E K]
 variable (p : ℕ) [ExpChar E p]
 
-instance {m n : ℕ} [ExpChar F p] : RingHomCompTriple (iterateFrobenius F p m)
-    (iterateFrobenius F p n) (iterateFrobenius F p (n + m)) :=
-  { comp_eq := (iterateFrobenius_add F p n m).symm }
-
-instance {m n : ℕ} [ExpChar F p] : RingHomCompTriple (iterateFrobenius F p m)
-    (iterateFrobenius F p n) (iterateFrobenius F p (m + n)) :=
-  { comp_eq := by rw [add_comm]; exact (iterateFrobenius_add F p n m).symm }
-
-lemma iRed'_algebraMap' (a : F) : iRed' E K p (algebraMap F K a) = (algebraMap F E a) ^ p ^ finInsepLogRank E K p := by
+lemma iRed'_algebraMap_base (a : F) : iRed' E K p (algebraMap F K a) = (algebraMap F E a) ^ p ^ finInsepLogRank E K p := by
   have := iRed'_algebraMap E p (algebraMap F K a)
   rw [← map_pow] at this
   apply (algebraMap E K).injective
   rwa [← map_pow, ← IsScalarTower.algebraMap_apply]
+
+lemma iRed'_algebraMap_bot (a : E) : iRed' E K p (algebraMap E K a) = a ^ p ^ finInsepLogRank E K p := by
+  have := iRed'_algebraMap E p (algebraMap E K a)
+  rw [← map_pow] at this
+  apply (algebraMap E K).injective
+  assumption
 
 variable [ExpChar F p]
 
@@ -232,12 +230,32 @@ noncomputable def iRedₛₗ : K →ₛₗ[iterateFrobenius F p (finInsepLogRank
   map_smul' := by
     intro a x
     simp [Algebra.smul_def]
-    rw [iRed'_map_mul, iRed'_algebraMap', iterateFrobenius_def, map_pow]
+    rw [iRed'_map_mul, iRed'_algebraMap_base, iterateFrobenius_def, map_pow]
+
+theorem RingHomCompTriple.iterateFrobenius {m n r : ℕ} (h : m + n = r) :
+    RingHomCompTriple (iterateFrobenius F p m) (iterateFrobenius F p n) (iterateFrobenius F p r) :=
+  { comp_eq := by rw [← h, add_comm]; exact (iterateFrobenius_add F p n m).symm }
 
 /-- Inseparable reduction map composed with iterated Frobenius (semilinear map). -/
-noncomputable def iRed_frobₛₗ (s : ℕ) :
-  K →ₛₗ[iterateFrobenius F p (finInsepLogRank E K p + s)] E :=
+noncomputable def iRed_frobₛₗ (s : ℕ) (σ : F →+* F)
+    [RingHomCompTriple (iterateFrobenius F p (finInsepLogRank E K p)) (iterateFrobenius F p s) σ] :
+    K →ₛₗ[σ] E :=
   (LinearMap.iterateFrobenius F E p s).comp (iRedₛₗ F E K p)
-  --(iterateFrobeniusₛₗ F E p s).comp (iRedₛₗ F E K p)
+
+/-- The map `iRed_frobₛₗ` acts on the middle field like raising to the power of the characteristic. -/
+theorem iRed_frobₛₗ_algebraMap (s : ℕ) (a : E) (σ : F →+* F)
+    [RingHomCompTriple (iterateFrobenius F p (finInsepLogRank E K p)) (iterateFrobenius F p s) σ] :
+    iRed_frobₛₗ F E K p s σ (algebraMap E K a) = a ^ p ^ (finInsepLogRank E K p + s) := by
+  simp [iRed_frobₛₗ, iRedₛₗ, iRed'_algebraMap_bot,
+    LinearMap.iterateFrobenius, iterateFrobenius_def]
+  rw [← pow_mul, ← pow_add, add_comm]
+
+/-- The map `iRed_frobₛₗ` acts on the top field like raising to the power of the characteristic. -/
+theorem iRed_frobₛₗ_algebraMap' (s : ℕ) (a : K) (σ : F →+* F)
+  [RingHomCompTriple (iterateFrobenius F p (finInsepLogRank E K p)) (iterateFrobenius F p s) σ] :
+    algebraMap E K (iRed_frobₛₗ F E K p s σ a) = a ^ p ^ (finInsepLogRank E K p + s) := by
+  simp [iRed_frobₛₗ, iRedₛₗ, iRed'_algebraMap,
+    LinearMap.iterateFrobenius, iterateFrobenius_def]
+  rw [← pow_mul, ← pow_add, add_comm]
 
 end SemiLinear
