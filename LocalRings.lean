@@ -1,1 +1,2 @@
-import LocalRings.Defs
+import LocalRings.Basic
+import LocalRings.FiniteDimensional

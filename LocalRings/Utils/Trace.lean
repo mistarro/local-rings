@@ -5,21 +5,12 @@ import Mathlib.RingTheory.Trace.Basic
 import Mathlib.Algebra.Polynomial.AlgebraMap
 import Mathlib.Algebra.Polynomial.Monic
 
+import LocalRings.Utils.Basic
 import LocalRings.Utils.PurelyInseparable
 
-/-- Two monic polynomials of the same degree are equal if one divides the other.
-    Mathlib, do you have it somewhere? -/
-theorem Polynomial.eq_of_monic_of_eq_deg_of_dvd {R : Type u} [CommRing R]
-    {p q : Polynomial R} (hp : p.Monic) (hq : q.Monic)
-    (hdeg : p.natDegree = q.natDegree) (hdvd : p ∣ q) : p = q := by
-  obtain ⟨c, hc⟩ := hdvd
-  have hcm : c.Monic := (Monic.of_mul_monic_left hp (hc ▸ hq))
-  have := (hdeg ▸ hc ▸ Polynomial.Monic.natDegree_mul hp hcm).symm
-  have hc_deg : c.natDegree = 0 := by rwa [add_right_eq_self] at this
-  have hc1 : c = 1 := (Polynomial.Monic.natDegree_eq_zero_iff_eq_one hcm).mp hc_deg
-  symm
-  rwa [hc1, mul_one] at hc
-
+/-!
+# Results for trace from separable closure.
+-/
 
 open scoped IntermediateField
 
@@ -130,19 +121,20 @@ lemma trace_a_frob_0 [ExpChar E p] (s : ℕ) (a : E) :
       pow_ne_zero_iff (ne_of_lt (expChar_pow_pos F p s)).symm]
 
 variable (K : Type u) [Field K] [Algebra E K] [Algebra F K] [IsScalarTower F E K]
-  [FiniteDimensional E K] [IsPurelyInseparable E K] (p : ℕ) [ExpChar E p] [ExpChar F p] (s : ℕ)
+  [FiniteDimensional E K] [IsPurelyInseparable E K] (p : ℕ) [ExpChar E p] [ExpChar F p]
 
 variable (E) in
 /-- In characteristic `p > 0`, composition of the trace map for separable part and
     `iRed` for purely inseparable one is non-trivial. -/
-lemma nontrivial_trace_iRed_frob (σ : F →+* F)
+lemma nontrivial_trace_iRed_frob (s : ℕ) (σ : F →+* F)
     [RingHomCompTriple (iterateFrobenius F p (finInsepLogRank E K p)) (iterateFrobenius F p s) σ] :
     (Algebra.trace F E).comp (iRed_frobₛₗ F E K p s σ) ≠ 0 := by
   let r := finInsepLogRank E K p + s
+  /- Trace is surjective, so there is `a : E` with `Algebra.trace F E a = 1` -/
   obtain ⟨a, ha⟩ := Algebra.trace_surjective F E 1
-  have htra : Algebra.trace F E a ≠ 0 := by simp_all only [ne_eq, one_ne_zero, not_false_eq_true]
-  have : Algebra.trace F E (a ^ p ^ r) ≠ 0 := trace_a_frob_0 F p r a htra
-  have := iRed_frobₛₗ_algebraMap F E K p s a
+  replace ha : Algebra.trace F E a ≠ 0 := by rw [ha]; exact one_ne_zero
+  replace ha : Algebra.trace F E (a ^ p ^ r) ≠ 0 := trace_a_frob_0 F p r a ha
+  have := iRed_frobₛₗ_algebraMap F E K p s a σ
   simp [DFunLike.ne_iff]
   use algebraMap E K a
   rwa [this]
