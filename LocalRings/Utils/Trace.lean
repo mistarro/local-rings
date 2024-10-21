@@ -30,10 +30,9 @@ lemma trace_minpoly [FiniteDimensional F E] (a : E) :
     _ = n • -(minpoly F (algebraMap F⟮a⟯ E pb.gen)).nextCoeff := by
       rw [← minpoly.algebraMap_eq (algebraMap F⟮a⟯ E).injective pb.gen]
     _ = n • -(minpoly F (algebraMap F⟮a⟯ E a')).nextCoeff := rfl
-    _ = n • -(minpoly F a).nextCoeff := by rw [IntermediateField.AdjoinSimple.algebraMap_gen F a]
-    _ = algebraMap ℕ F n * -(minpoly F a).nextCoeff := by rw [Algebra.smul_def]
-    _ = n * -(minpoly F a).nextCoeff := rfl
-
+    _ = n • -(minpoly F a).nextCoeff := by
+      rw [IntermediateField.AdjoinSimple.algebraMap_gen F a]
+    _ = n * -(minpoly F a).nextCoeff := by rw [Algebra.smul_def]; rfl
 
 variable [Algebra.IsSeparable F E]
 variable (p : ℕ) [ExpChar F p]
@@ -54,8 +53,10 @@ lemma adjoin_a_pow_p_eq (s : ℕ) (a : E) : F⟮a ^ p ^ s⟯ = F⟮a⟯ := by
     suffices IsPurelyInseparable L L' by
       haveI : Algebra.IsSeparable L E := Algebra.isSeparable_tower_top_of_isSeparable F L E
       haveI : Algebra.IsSeparable L L' := Algebra.isSeparable_tower_bot_of_isSeparable L L' E
-      have := IntermediateField.eq_bot_of_isPurelyInseparable_of_isSeparable L'
-      rw [IntermediateField.adjoin_simple_eq_bot_iff, IntermediateField.mem_bot] at this
+      have :=
+        IntermediateField.mem_bot.mp <|
+        IntermediateField.adjoin_simple_eq_bot_iff.mp <|
+        IntermediateField.eq_bot_of_isPurelyInseparable_of_isSeparable L'
       simp at this
       exact h this
     simp_rw [IntermediateField.isPurelyInseparable_adjoin_simple_iff_pow_mem L E p]
@@ -70,7 +71,6 @@ lemma minpoly_map_frobenius (s : ℕ) (a : E) :
     minpoly F (iterateFrobenius E p s a) = (minpoly F a).map (iterateFrobenius F p s) := by
   let μ := minpoly F a
   let μ₁ := minpoly F (a ^ p ^ s)
-  /- μ.map σ === eval₂ (C.comp σ) X μ -/
   let μ₂ := μ.map (iterateFrobenius F p s)
   /- goal: `μ₁ = μ₂` -/
   have h_aMap_Frob_comm :
@@ -94,7 +94,7 @@ lemma minpoly_map_frobenius (s : ℕ) (a : E) :
       _ = FiniteDimensional.finrank F F⟮a⟯ := by rw [adjoin_a_pow_p_eq F p s a]
       _ = μ.natDegree := IntermediateField.adjoin.finrank hai
       _ = μ₂.natDegree := (Polynomial.natDegree_map_eq_of_injective (iterateFrobenius F p s).injective μ).symm
-  /- one divide the other -/
+  /- one divides the other -/
   have hdvd : μ₁ ∣ μ₂ := minpoly.dvd F (a ^ p ^ s) hμ₂aeval.symm
   exact Polynomial.eq_of_monic_of_eq_deg_of_dvd hμ₁monic hμ₂monic hdeg hdvd
 
@@ -103,20 +103,16 @@ variable [FiniteDimensional F E]
 /-- Auxiliary lemma: if trace of `a` is non-zero then trace of `a ^ p ^ s` is non-zero in a separable extension. -/
 lemma trace_a_frob_0 [ExpChar E p] (s : ℕ) (a : E) :
     Algebra.trace F E a ≠ 0 → Algebra.trace F E (a ^ p ^ s) ≠ 0 := by
-  have htra := trace_minpoly F a
-  have htrap := trace_minpoly F (a ^ p ^ s)
   intro h
-  rw [htra, mul_ne_zero_iff] at h
-  obtain ⟨hn, hc⟩ := h
-  rw [htrap, adjoin_a_pow_p_eq F p s a]
+  obtain ⟨hn, hc⟩ := mul_ne_zero_iff.mp (trace_minpoly F a ▸ h)
+  rw [trace_minpoly F (a ^ p ^ s), adjoin_a_pow_p_eq F p s a]
   apply mul_ne_zero_iff.mpr
   apply And.intro
   · assumption
-  · rw [neg_ne_zero] at hc
+  · rw [neg_ne_zero] at *
     rwa [← iterateFrobenius_def,
       minpoly_map_frobenius,
       Polynomial.nextCoeff_map (iterateFrobenius F p s).injective,
-      neg_ne_zero,
       iterateFrobenius_def,
       pow_ne_zero_iff (ne_of_lt (expChar_pow_pos F p s)).symm]
 
@@ -134,7 +130,7 @@ lemma nontrivial_trace_iRed_frob (s : ℕ) (σ : F →+* F)
   obtain ⟨a, ha⟩ := Algebra.trace_surjective F E 1
   replace ha : Algebra.trace F E a ≠ 0 := by rw [ha]; exact one_ne_zero
   replace ha : Algebra.trace F E (a ^ p ^ r) ≠ 0 := trace_a_frob_0 F p r a ha
-  have := iRed_frobₛₗ_algebraMap F E K p s a σ
+  have := iRed_frobₛₗ_algebraMap_mid F E K p s a σ
   simp [DFunLike.ne_iff]
   use algebraMap E K a
   rwa [this]

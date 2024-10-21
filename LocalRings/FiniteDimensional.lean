@@ -45,14 +45,14 @@ open scoped IntermediateField /- `F⟮a⟯` notation for simple field adjoin -/
 lemma finrank_equality_aux
     {E₁ : IntermediateField F K₁} {E₂ : IntermediateField F K₂}
     (h : FiniteDimensional.finrank F E₁ = FiniteDimensional.finrank F E₂) :
-    FiniteDimensional.finrank F K₂ * FiniteDimensional.finrank E₁ K₁ =
-    FiniteDimensional.finrank F K₁ * FiniteDimensional.finrank E₂ K₂ := by
+    FiniteDimensional.finrank E₁ K₁ * FiniteDimensional.finrank F K₂ =
+    FiniteDimensional.finrank E₂ K₂ * FiniteDimensional.finrank F K₁:= by
   have h₁ := FiniteDimensional.finrank_mul_finrank F E₁ K₁
   have h₂ := FiniteDimensional.finrank_mul_finrank F E₂ K₂
   rw [← h₁, ← h₂, mul_comm, ← mul_assoc]
-  apply congrArg (fun (x : ℕ) => x * FiniteDimensional.finrank E₂ K₂)
-  rw [mul_comm]
   apply congrArg (fun (x : ℕ) => x * FiniteDimensional.finrank E₁ K₁)
+  rw [mul_comm]
+  apply congrArg (fun (x : ℕ) => FiniteDimensional.finrank E₂ K₂ * x)
   exact h.symm
 
 variable [FiniteDimensional F K₁] [FiniteDimensional F K₂]
@@ -101,6 +101,8 @@ theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
   haveI : IsPurelyInseparable E₂ K₂ := separableClosure.isPurelyInseparable F K₂
   letI p := ringExpChar F
   haveI : ExpChar F p := inferInstance
+
+  /- Purely inseparable (logarithmic) degrees. -/
   let r₁ : ℕ := finInsepLogRank E₁ K₁ p
   let r₂ : ℕ := finInsepLogRank E₂ K₂ p
   let r := max r₁ r₂
@@ -108,6 +110,8 @@ theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
   let s₂ : ℕ := r - r₂
   have hrs₁ : r₁ + s₁ = r := by simp only [s₁, add_tsub_cancel_of_le (le_max_left r₁ r₂)]
   have hrs₂ : r₂ + s₂ = r := by simp only [s₂, add_tsub_cancel_of_le (le_max_right r₁ r₂)]
+
+  /- Separable degrees. -/
   let b₁ := FiniteDimensional.finrank F E₁
   let b₂ := FiniteDimensional.finrank F E₂
   let d : ℕ := Nat.gcd b₁ b₂
@@ -119,8 +123,8 @@ theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
   let a₁' := b₁ / d
   let a₂' := b₂ / d
   have a_coprime : Nat.gcd a₁' a₂' = 1 := by rw [Nat.gcd_div hb₁d hb₂d, Nat.div_self hd]
-  let a₁ := (a₁' : F)
-  let a₂ := (a₂' : F)
+  let a₁ : F := a₁'
+  let a₂ : F := a₂'
   have a_nonzero : a₁ ≠ 0 ∨ a₂ ≠ 0 := by
     by_contra hc
     push_neg at hc
@@ -134,15 +138,16 @@ theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
       contradiction
     --/
     by_cases h : p = 1
-    · haveI := ExpChar.congr F p h
-      haveI := charZero_of_expChar_one' F
+    · haveI := ExpChar.congr F p h /- ExpChar F 1 -/
+      haveI := charZero_of_expChar_one' F /- CharZero F -/
       simp [a₁, a₂, Nat.cast_eq_zero] at hc
       simp [hc.1, hc.2] at a_coprime
-    · haveI := charP_of_expChar_prime' (R := F) h
+    · haveI := charP_of_expChar_prime' (R := F) h /- CharP F p -/
       simp only [CharP.cast_eq_zero_iff F p] at hc
       rw [← Nat.dvd_gcd_iff, a_coprime, Nat.dvd_one] at hc
       exact h hc
 
+  /- Define the semilinear map `T : K₁ × K₂ →ₛₗ[σ] F`. -/
   let σ := iterateFrobenius F p r
   haveI := RingHomCompTriple.iterateFrobenius F p hrs₁
   haveI := RingHomCompTriple.iterateFrobenius F p hrs₂
@@ -150,11 +155,10 @@ theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
   let T₂ := ((Algebra.trace F E₂).comp (iRed_frobₛₗ F E₂ K₂ p s₂ σ)).comp (LinearMap.snd F K₁ K₂)
   let T : K₁ × K₂ →ₛₗ[σ] F := a₂ • T₁ - a₁ • T₂
   let U : Subspace F (K₁ × K₂) := LinearMap.ker T
-  /- Show `T ≠ 0` (equivalent to `U ≠ K₁ × K₂`) -/
+
+  /- Show `T ≠ 0` (equivalent to `U ≠ K₁ × K₂`). -/
   have hU_ne_top : U ≠ ⊤ := by
-    intro h
-    suffices T ≠ 0 by exact this <| LinearMap.ker_eq_top.mp h
-    simp [DFunLike.ne_iff]
+    apply (not_congr <| LinearMap.ker_eq_top).mpr
     cases a_nonzero with
     | inl ha₁ =>
         have h := nontrivial_trace_iRed_frob F E₂ K₂ p s₂ σ
@@ -170,63 +174,55 @@ theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
         use x, 0
         simp [T, T₁, T₂]
         exact ⟨ha₂, hx⟩
-  /- Show that `T` vanishes on local elements -/
+
+  /- Show that `T` vanishes on local elements. -/
   have hT2 : localElements F (K₁ × K₂) ⊆ U := by
-    intro α hα
-    simp [localElements, Set.mem_setOf_eq] at hα
-    simp [U]
-    obtain ⟨α₁, α₂⟩ := α
+    intro ⟨α₁, α₂⟩ hα
+    simp [U, T, T₁, T₂, sub_eq_zero]
+    set β₁ : E₁ := iRed_frobₛₗ F E₁ K₁ p s₁ σ α₁
+    set β₂ : E₂ := iRed_frobₛₗ F E₂ K₂ p s₂ σ α₂
 
-    simp [T, T₁, T₂]
-    rw [sub_eq_zero]
+    /- Goal is now `a₂ * (Algebra.trace F E₁ β₁) = a₁ * (Algebra.trace F E₂ β₂)`. -/
 
-    let β₁ : E₁ := iRed_frobₛₗ F E₁ K₁ p s₁ σ α₁
-    let β₂ : E₂ := iRed_frobₛₗ F E₂ K₂ p s₂ σ α₂
-
-    /- goal is now `a₂ * (Algebra.trace F E₁ β₁) = a₁ * (Algebra.trace F E₂ β₂)` -/
-
-    have hβ₁α₁ : algebraMap E₁ K₁ β₁ = α₁ ^ p ^ r := by
-      rw [← hrs₁]
-      exact iRed_frobₛₗ_algebraMap' F E₁ K₁ p s₁ α₁ σ
-    have hβ₂α₂ : algebraMap E₂ K₂ β₂ = α₂ ^ p ^ r := by
-      rw [← hrs₂]
-      exact iRed_frobₛₗ_algebraMap' F E₂ K₂ p s₂ α₂ σ
-
-    /- if `α` is local then so is `α ^ p ^ r` -/
+    /- If `α` is local then so is `α ^ p ^ r`. -/
     replace hα := isLocalElement_pow F hα (p ^ r)
     simp at hα
+    /- Components of `α ^ p ^ r` have the same minimal polynomial. -/
     replace hα := local_minpoly_eq F hα
-    rw [← hβ₁α₁, ← hβ₂α₂,
+    /- Simplify using known facts: `β₁` and `β₂` have the same minimal polynomial. -/
+    rw [
+      show α₁ ^ p ^ r = algebraMap E₁ K₁ β₁ by
+        rw [← hrs₁]
+        exact (iRed_frobₛₗ_algebraMap_top F E₁ K₁ p s₁ α₁ σ).symm,
+      show α₂ ^ p ^ r = algebraMap E₂ K₂ β₂ by
+        rw [← hrs₂]
+        exact (iRed_frobₛₗ_algebraMap_top F E₂ K₂ p s₂ α₂ σ).symm,
       minpoly.algebraMap_eq (algebraMap E₁ K₁).injective,
       minpoly.algebraMap_eq (algebraMap E₂ K₂).injective] at hα
 
-    have hβ₁i : IsIntegral F β₁ := IsIntegral.of_finite F β₁
-    have hβ₂i : IsIntegral F β₂ := IsIntegral.of_finite F β₂
-
-    have h_finrank := IntermediateField.adjoin.finrank hβ₁i
-    rw [hα, ← IntermediateField.adjoin.finrank hβ₂i] at h_finrank
-    have h_nextCoeff := congrArg Polynomial.nextCoeff hα
+    /- Extensions `F⟮β₁⟯` and `F⟮β₂⟯` have equal degrees over `F`.  -/
+    have h_finrank_eq :=
+      IntermediateField.adjoin.finrank (IsIntegral.of_finite F β₂) ▸
+      hα ▸
+      IntermediateField.adjoin.finrank (IsIntegral.of_finite F β₁)
 
     rw [trace_minpoly F β₁, trace_minpoly F β₂,
       show a₁ = (a₁' : F) by rfl,
       show a₂ = (a₂' : F) by rfl,
       ← mul_assoc, ← mul_assoc,
-      h_nextCoeff]
+      congrArg Polynomial.nextCoeff hα,
+      ← Nat.cast_mul, ← Nat.cast_mul]
 
-    norm_cast
+    apply congrArg (fun x : ℕ => x * -(minpoly F β₂).nextCoeff)
 
-    apply congrArg (fun (x : F) => x * -(minpoly F β₂).nextCoeff)
-    apply congrArg Nat.cast
+    rw [mul_comm, mul_comm (b₁ / d) _, ← Nat.mul_div_assoc, ← Nat.mul_div_assoc]
+    apply congrArg (fun x => x / d)
+    exact finrank_equality_aux F h_finrank_eq
+    /- for some reason we have extra goals: `d ∣ b₁` and `d ∣ b₂` but those are assumptions -/
+    assumption
+    assumption
 
-    simp [a₁', a₂']
-    rw [mul_comm, mul_comm (b₁ / d) _]
-    apply Nat.eq_of_mul_eq_mul_right hd
-    rw [mul_assoc, Nat.div_mul_cancel hb₂d, mul_assoc, Nat.div_mul_cancel hb₁d]
-    rw [mul_comm, mul_comm _ b₁]
-    simp [b₁, b₂]
-
-    exact finrank_equality_aux F h_finrank
-
+  /- Subspace generated by local elements is proper. -/
   have h_contra : Submodule.span F (localElements F (K₁ × K₂)) < ⊤ :=
     lt_of_le_of_lt
       (Submodule.span_le.mpr hT2) /- local span ≤ U -/
@@ -235,8 +231,9 @@ theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
 
 variable {F A} in
 /-- Finite-dimensional algebras are local if they are locally generated. -/
-theorem isLocalRing_if_isLocallyGenerated_findim [Nontrivial A]
-    (h : UFiniteDimensional F A) (hLG : isLocallyGenerated F A) : LocalRing A := by
+theorem isLocalRing_if_isLocallyGenerated_findim [Nontrivial A] [FiniteDimensional F A]
+    (hLG : isLocallyGenerated F A) : LocalRing A := by
+  have h : UFiniteDimensional F A := ‹FiniteDimensional F A›
   refine isLocalAlgebra_if_isLocallyGenerated F ?_ notLocallyGenerated_KK_if_findim h hLG
   intro _ _ _ _ _ _ _ _ f hf hA
   exact hA.of_surjective f hf
