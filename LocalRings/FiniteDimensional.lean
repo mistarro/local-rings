@@ -47,39 +47,15 @@ lemma finrank_equality_aux
     (h : FiniteDimensional.finrank F E₁ = FiniteDimensional.finrank F E₂) :
     FiniteDimensional.finrank E₁ K₁ * FiniteDimensional.finrank F K₂ =
     FiniteDimensional.finrank E₂ K₂ * FiniteDimensional.finrank F K₁:= by
-  have h₁ := FiniteDimensional.finrank_mul_finrank F E₁ K₁
-  have h₂ := FiniteDimensional.finrank_mul_finrank F E₂ K₂
-  rw [← h₁, ← h₂, mul_comm, ← mul_assoc]
-  apply congrArg (fun (x : ℕ) => x * FiniteDimensional.finrank E₁ K₁)
+  rw [← FiniteDimensional.finrank_mul_finrank F E₁ K₁,
+    ← FiniteDimensional.finrank_mul_finrank F E₂ K₂,
+    mul_comm, ← mul_assoc]
+  apply congrArg (fun (x : ℕ) ↦ x * FiniteDimensional.finrank E₁ K₁)
   rw [mul_comm]
-  apply congrArg (fun (x : ℕ) => FiniteDimensional.finrank E₂ K₂ * x)
+  apply congrArg (fun (x : ℕ) ↦ FiniteDimensional.finrank E₂ K₂ * x)
   exact h.symm
 
 variable [FiniteDimensional F K₁] [FiniteDimensional F K₂]
-
-/-- If `(a₁, a₂) : K₁ × K₂` is local then `minpoly F a₁ = minpoly F a₂` -/
-lemma local_minpoly_eq {a₁ : K₁} {a₂ : K₂} (h1 : isLocalElement F (a₁, a₂)) :
-    minpoly F a₁ = minpoly F a₂ := by
-  let μ₁ := minpoly F a₁
-  have int_a₁ : IsIntegral F a₁ := IsIntegral.of_finite F a₁
-  obtain ⟨B, ⟨_, ha⟩⟩ := h1
-  haveI : IsArtinianRing B := isArtinian_of_tower F (inferInstance : IsArtinian F B)
-  haveI : IsReduced B := isReduced_of_injective B.toSubring.subtype (by apply Subtype.coe_injective)
-  letI := (artinian_reduced_local_is_field B).toField
-  let a : B := ⟨(a₁, a₂), ha⟩
-  let f₁ := (AlgHom.fst F K₁ K₂).comp (B.val) /- projection `R →ₐ[F] K₁` -/
-  let f₂ := (AlgHom.snd F K₁ K₂).comp (B.val) /- projection `R →ₐ[F] K₂` -/
-  have hf₁μ₁a := Polynomial.aeval_algHom_apply f₁ a μ₁
-  rw [show f₁ a = a₁ by rfl, minpoly.aeval] at hf₁μ₁a
-  /- `hf₁μ₁a : f₁ (μ₁ a) = 0` -/
-  have hμ₁a0 /- `μ₁ a = 0` -/ := (map_eq_zero f₁).mp hf₁μ₁a.symm
-  have hμ₁a₂0 := Polynomial.aeval_algHom_apply f₂ a μ₁
-  rw [show f₂ a = a₂ by rfl, hμ₁a0, map_zero] at hμ₁a₂0
-  /- `hμ₁a₂0 : μ₁ a₂ = 0` -/
-  exact minpoly.eq_of_irreducible_of_monic
-    (minpoly.irreducible int_a₁)
-    hμ₁a₂0
-    (minpoly.monic int_a₁)
 
 /-- Uniform definition of `FiniteDimensional` to be used in the generic theorem.
     Original definition is:
@@ -188,7 +164,7 @@ theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
     replace hα := isLocalElement_pow F hα (p ^ r)
     simp at hα
     /- Components of `α ^ p ^ r` have the same minimal polynomial. -/
-    replace hα := local_minpoly_eq F hα
+    replace hα := local_minpoly_eq F (IsIntegral.of_finite F (α₁ ^ p ^ r, α₂ ^ p ^ r)) hα
     /- Simplify using known facts: `β₁` and `β₂` have the same minimal polynomial. -/
     rw [
       show α₁ ^ p ^ r = algebraMap E₁ K₁ β₁ by

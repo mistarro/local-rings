@@ -76,9 +76,8 @@ theorem isLocalElement_pow {a : A} (ha : isLocalElement F a) (n : ℕ) : isLocal
 /-- A homomorphism of rings maps local elements to local elements. -/
 theorem isLocalElement_map [Nontrivial A'] (f : A →ₐ[F] A')
     {a : A} (ha : isLocalElement F a) : isLocalElement F (f a) := by
-  obtain ⟨B, ⟨hB, haB⟩⟩ := ha
-  /- g : B →ₐ[F] A' -/
-  let g := f.comp (B.val)
+  obtain ⟨B, ⟨_, haB⟩⟩ := ha
+  let g : B →ₐ[F] A' := f.comp (B.val)
   use g.range
   apply And.intro
   · /- goal: `g.range` is a local ring -/
@@ -87,6 +86,20 @@ theorem isLocalElement_map [Nontrivial A'] (f : A →ₐ[F] A')
     rw [AlgHom.mem_range g]
     use ⟨a, haB⟩
     rfl
+
+variable {F} in
+/-- An integral element `a` of an `F`-algebra `A` is local iff
+    it belongs to a finite-dimensional local `F`-subalgebra of `A`. -/
+theorem isLocalElement_integral {a : A} (hi : IsIntegral F a) (hl : isLocalElement F a) :
+    ∃ B : Subalgebra F A, LocalRing B ∧ FiniteDimensional F B ∧ a ∈ B := by
+  let B' := Algebra.adjoin F {a}
+  use B'
+  obtain ⟨B, ⟨_, ha⟩⟩ := hl
+  haveI := FiniteDimensional.of_integral_adjoin hi
+  exact ⟨LocalRing.of_subalgebra' F (Algebra.adjoin_le (Set.singleton_subset_iff.mpr ha))
+      (fun a' : B' ↦ IsUnit.iff_nonzerodivisor_of_integral F (IsIntegral.of_finite F a')),
+    FiniteDimensional.of_integral_adjoin hi,
+    Algebra.subset_adjoin (Set.mem_singleton a)⟩
 
 variable (A) in
 /-- Set of all local elements of an `F`-algebra `A`. -/
@@ -112,6 +125,30 @@ lemma isLocallyGenerated_surjective [Nontrivial A'] (f : A →ₐ[F] A')
   rwa [h, Submodule.map_top, LinearMap.range_eq_top.mpr hf, top_le_iff] at hsub
 
 variable {K₁ K₂ : Type u} [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂]
+
+/-- If `(a₁, a₂) : K₁ × K₂` is local then `minpoly F a₁ = minpoly F a₂` -/
+lemma local_minpoly_eq {a₁ : K₁} {a₂ : K₂} (hi : IsIntegral F (a₁, a₂)) (hl : isLocalElement F (a₁, a₂)) :
+    minpoly F a₁ = minpoly F a₂ := by
+  let μ₁ := minpoly F a₁
+  have ha₁ : IsIntegral F a₁ := IsIntegral.map (AlgHom.fst F K₁ K₂) hi
+  obtain ⟨B, ⟨_, _, ha⟩⟩ := isLocalElement_integral hi hl
+  haveI : IsArtinianRing B := isArtinian_of_tower F (inferInstance : IsArtinian F B)
+  haveI : IsReduced B := isReduced_of_injective B.toSubring.subtype (by apply Subtype.coe_injective)
+  letI := (artinian_reduced_local_is_field B).toField
+  let a : B := ⟨(a₁, a₂), ha⟩
+  let f₁ := (AlgHom.fst F K₁ K₂).comp (B.val) /- projection `R →ₐ[F] K₁` -/
+  let f₂ := (AlgHom.snd F K₁ K₂).comp (B.val) /- projection `R →ₐ[F] K₂` -/
+  have hf₁μ₁a := Polynomial.aeval_algHom_apply f₁ a μ₁
+  rw [show f₁ a = a₁ by rfl, minpoly.aeval] at hf₁μ₁a
+  /- `hf₁μ₁a : f₁ (μ₁ a) = 0` -/
+  have hμ₁a0 /- `μ₁ a = 0` -/ := (map_eq_zero f₁).mp hf₁μ₁a.symm
+  have hμ₁a₂0 := Polynomial.aeval_algHom_apply f₂ a μ₁
+  rw [show f₂ a = a₂ by rfl, hμ₁a0, map_zero] at hμ₁a₂0
+  /- `hμ₁a₂0 : μ₁ a₂ = 0` -/
+  exact minpoly.eq_of_irreducible_of_monic
+    (minpoly.irreducible ha₁)
+    hμ₁a₂0
+    (minpoly.monic ha₁)
 
 /-- Generic theorem: given
       * `hPQ`: proof that `P F A` implies `Q F K` given a surjective `f : A →ₐ[F] K`;
