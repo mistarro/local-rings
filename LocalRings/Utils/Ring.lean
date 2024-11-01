@@ -1,11 +1,16 @@
+import Mathlib.Algebra.Algebra.Prod
+import Mathlib.Algebra.Polynomial.Monic
+import Mathlib.Algebra.Polynomial.AlgebraMap
 import Mathlib.Algebra.Ring.Hom.Defs
 
 import Mathlib.RingTheory.Adjoin.PowerBasis
 import Mathlib.RingTheory.Ideal.QuotientOperations
 import Mathlib.RingTheory.IntegralClosure.IsIntegral.Defs
+import Mathlib.RingTheory.IntegralClosure.Algebra.Defs
 import Mathlib.RingTheory.LocalRing.Basic
 import Mathlib.RingTheory.LocalRing.MaximalIdeal.Basic
 import Mathlib.RingTheory.Artinian
+
 
 /-!
 # Supplementary lemmas for commutative rings.
@@ -73,7 +78,6 @@ variable (F : Type u)
 variable {A A' : Type u}
 variable [Field F] [CommRing A] [Algebra F A] [CommRing A'] [Algebra F A']
 
-/- TODO: move to Ring.lean -/
 variable {F} in
 theorem FiniteDimensional.of_integral_adjoin {a : A} (hai : IsIntegral F a) :
     FiniteDimensional F (Algebra.adjoin F {a}) :=
@@ -157,3 +161,43 @@ lemma LocalRing.of_subalgebra [LocalRing A] {B : Subalgebra F A}
   -/
 
 end Algebra
+
+section IsIntegral
+
+variable {R A B : Type u} [CommRing R] [CommRing A] [Algebra R A] [CommRing B] [Algebra R B]
+
+/-- Polynomial evaluation on a pair is a pair of evaluations. -/
+theorem Polynomial.aeval_prod (a : A) (b : B) (p : Polynomial R) :
+    Polynomial.aeval (a, b) p =
+      (Polynomial.aeval a p, Polynomial.aeval b p) := by
+  have ha := (show (AlgHom.fst R A B) (a, b) = a by rfl) ▸ Polynomial.aeval_algHom (AlgHom.fst R A B) (a, b)
+  have hb := (show (AlgHom.snd R A B) (a, b) = b by rfl) ▸ Polynomial.aeval_algHom (AlgHom.snd R A B) (a, b)
+  rw [ha, hb]
+  rfl
+
+/-- A pair of elements is integral if each component is integral. -/
+theorem IsIntegral_pair {a : A} {b : B} (ha : IsIntegral R a) (hb : IsIntegral R b) : IsIntegral R (a, b) := by
+  obtain ⟨μa, ⟨hμaMonic, hμaEval⟩⟩ := ha
+  obtain ⟨μb, ⟨hμbMonic, hμbEval⟩⟩ := hb
+  use μa * μb
+  refine ⟨Polynomial.Monic.mul hμaMonic hμbMonic, ?_⟩
+  rw [← Polynomial.aeval_def] at *
+  rw [Polynomial.aeval_prod,
+    Polynomial.aeval_mul, hμaEval, zero_mul,
+    Polynomial.aeval_mul, hμbEval, mul_zero]
+  rfl
+
+/-- Product of two integral algebras is an integral algebra. -/
+instance Algebra.IsIntegral_prod [Algebra.IsIntegral R A] [Algebra.IsIntegral R B] : Algebra.IsIntegral R (A × B) :=
+  Algebra.isIntegral_def.mpr fun ⟨a, b⟩ ↦
+    IsIntegral_pair (Algebra.isIntegral_def.mp ‹_› a) (Algebra.isIntegral_def.mp ‹_› b)
+
+/-- Image of an integral algebra is an integral algebra. -/
+theorem Algebra.IsIntegral_of_surjective [Algebra.IsIntegral R A] {f : A →ₐ[R] B} (hf : Function.Surjective f) :
+    Algebra.IsIntegral R B := by
+  apply Algebra.isIntegral_def.mpr
+  intro b
+  obtain ⟨a, ha⟩ := hf b
+  exact ha ▸ IsIntegral.map f (Algebra.isIntegral_def.mp ‹_› a)
+
+end IsIntegral

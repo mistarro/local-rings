@@ -12,9 +12,7 @@ import Mathlib.RingTheory.LocalRing.RingHom.Basic
 import Mathlib.RingTheory.Trace.Basic
 
 import LocalRings.Utils.Module
-import LocalRings.Utils.PurelyInseparable
 import LocalRings.Utils.Ring
-import LocalRings.Utils.Trace
 
 /-!
 # Basic results about local elements and local rings.
@@ -26,12 +24,11 @@ import LocalRings.Utils.Trace
 * `localElements`: the set of all local elements in an `F`-algebra `A`.
 * `isLocallyGenerated`: an `F`-algebra `A` is *locally generated* if
     the local elements of `A` generate `A` as a vector space over `F`.
-* `iRedₛₗ`: the map `iRed` as a semilinear map wrt. `iteratedFrobenius` on the scalar field.
-* `iRed_frobₛₗ`: the map `iRed_frob` as a semilinear map wrt. `iteratedFrobenius`
-    on the scalar field.
 
 ## Main results
 
+* `isLocalElement_integral`: if a local element `a` of an `F`-algebra `A` is
+    integral then it belongs to a finite-dimensional local `F`-subalgebra of `A`.
 * `local_if_all_local`: if all elements of an `F`-algebra are local then the algebra is local.
 * `isLocalAlgebra_if_isLocallyGenerated`: generic theorem used to reduce: given
   * `hPQ`: proof that `P F A` implies `Q F K` given a surjective `f : A →ₐ[F] K`;
@@ -88,7 +85,7 @@ theorem isLocalElement_map [Nontrivial A'] (f : A →ₐ[F] A')
     rfl
 
 variable {F} in
-/-- An integral element `a` of an `F`-algebra `A` is local iff
+/-- If a local element `a` of an `F`-algebra `A` is integral then
     it belongs to a finite-dimensional local `F`-subalgebra of `A`. -/
 theorem isLocalElement_integral {a : A} (hi : IsIntegral F a) (hl : isLocalElement F a) :
     ∃ B : Subalgebra F A, LocalRing B ∧ FiniteDimensional F B ∧ a ∈ B := by
