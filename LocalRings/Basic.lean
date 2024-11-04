@@ -150,7 +150,7 @@ lemma local_minpoly_eq {a₁ : K₁} {a₂ : K₂} (hi : IsIntegral F (a₁, a�
 /-- Generic theorem: given
       * `hPQ`: proof that `P F A` implies `Q F K` given a surjective `f : A →ₐ[F] K`;
       * `hKK`: proof that `K₁ × K₂` cannot be locally generated if `Q F K₁` and `Q F K₂`;
-    an `F`-algebra `A` is local if it satisfies `P A` and is locally generated. -/
+    an `F`-algebra `A` satisfying `P A` is local if it is locally generated. -/
 theorem isLocalAlgebra_if_isLocallyGenerated [Nontrivial A]
     {Q : ∀ (F K : Type u) [Field F] [Field K] [Algebra F K], Prop}
     {P : ∀ (F A : Type u) [Field F] [CommRing A] [Algebra F A], Prop}
