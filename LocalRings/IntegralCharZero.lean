@@ -51,7 +51,7 @@ variable (F K : Type u) [Field F] [Field K] [Algebra F K]
 
 /-- Absolute trace function from an algebraic extension `K` to the base field `F`. -/
 noncomputable def absoluteTrace' : K → F :=
-    fun a ↦ (FiniteDimensional.finrank F F⟮a⟯ : F)⁻¹ *
+    fun a ↦ (Module.finrank F F⟮a⟯ : F)⁻¹ *
       Algebra.trace F F⟮a⟯ (IntermediateField.AdjoinSimple.gen F a)
 
 section FiniteDimensional
@@ -61,17 +61,17 @@ section FiniteDimensional
     This version accepts an argument from `E`. -/
 lemma absoluteTrace_eq_findim [CharZero F] {E : Type u} [Field E] [Algebra F E] [FiniteDimensional F E] (a : E) :
     absoluteTrace' F E a =
-      (FiniteDimensional.finrank F E : F)⁻¹ * Algebra.trace F E a := by
-  rw [trace_eq_trace_adjoin F a, ← FiniteDimensional.finrank_mul_finrank F F⟮a⟯ E]
+      (Module.finrank F E : F)⁻¹ * Algebra.trace F E a := by
+  rw [trace_eq_trace_adjoin F a, ← Module.finrank_mul_finrank F F⟮a⟯ E]
   simp [absoluteTrace']
-  rw [mul_comm (FiniteDimensional.finrank F⟮a⟯ E : F)⁻¹, mul_assoc,
+  rw [mul_comm (Module.finrank F⟮a⟯ E : F)⁻¹, mul_assoc,
     inv_mul_cancel_left₀ <| Nat.cast_ne_zero.mpr <| Nat.ne_zero_iff_zero_lt.mpr <|
-      FiniteDimensional.finrank_pos (R := F⟮a⟯) (M := E)]
+      Module.finrank_pos (R := F⟮a⟯) (M := E)]
 
 /-- The absolute trace from a finite-dimensional extension `E` of `F` to `F`
     is the trace map scaled by `[E : F]`. -/
 lemma absoluteTrace_eq_findim' [CharZero F] {E : Type u} [Field E] [Algebra F E] [FiniteDimensional F E] :
-    absoluteTrace' F E = (FiniteDimensional.finrank F E : F)⁻¹ • (Algebra.trace F E) :=
+    absoluteTrace' F E = (Module.finrank F E : F)⁻¹ • (Algebra.trace F E) :=
   funext (absoluteTrace_eq_findim F)
 
 end FiniteDimensional
@@ -97,9 +97,9 @@ theorem absoluteTrace_scalar (a : F) : absoluteTrace' F F a = a := by
   simp [absoluteTrace']
   have hbot : F⟮a⟯ = ⊥ := IntermediateField.adjoin_simple_eq_bot_iff.mpr <|
       Subalgebra.algebraMap_mem (⊥ : Subalgebra F F) a
-  have hrank1 : FiniteDimensional.finrank F F⟮a⟯ = 1 := hbot ▸ IntermediateField.finrank_bot
-  have hrank1' := one_mul (FiniteDimensional.finrank F⟮a⟯ F) ▸
-    hrank1 ▸ FiniteDimensional.finrank_self F ▸ FiniteDimensional.finrank_mul_finrank F F⟮a⟯ F
+  have hrank1 : Module.finrank F F⟮a⟯ = 1 := hbot ▸ IntermediateField.finrank_bot
+  have hrank1' := one_mul (Module.finrank F⟮a⟯ F) ▸
+    hrank1 ▸ Module.finrank_self F ▸ Module.finrank_mul_finrank F F⟮a⟯ F
   simp [hrank1]
   have htr := hrank1' ▸ trace_eq_trace_adjoin F a
   simp at htr

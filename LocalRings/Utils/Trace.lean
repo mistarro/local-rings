@@ -29,9 +29,9 @@ lemma trace_minpoly' {a : E} (ha : IsIntegral F a) :
 
 /-- Classical result about trace map, dimension and minimal polynomial coefficient. -/
 lemma trace_minpoly [FiniteDimensional F E] (a : E) :
-    Algebra.trace F E a = FiniteDimensional.finrank F⟮a⟯ E * -(minpoly F a).nextCoeff := by
+    Algebra.trace F E a = Module.finrank F⟮a⟯ E * -(minpoly F a).nextCoeff := by
   let a' := IntermediateField.AdjoinSimple.gen F a
-  let n := FiniteDimensional.finrank F⟮a⟯ E
+  let n := Module.finrank F⟮a⟯ E
   calc Algebra.trace F E a
     _ = n • Algebra.trace F F⟮a⟯ a' := trace_eq_trace_adjoin F a
     _ = n * -(minpoly F a).nextCoeff := by

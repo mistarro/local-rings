@@ -43,20 +43,20 @@ open scoped IntermediateField
 /-- Purely inseparable extension in characteristic `0` is trivial. -/
 theorem purelyInseparable_char0 (F K : Type u) [Field F] [Field K] [Algebra F K]
     [FiniteDimensional F K] [IsPurelyInseparable F K] [CharZero F] :
-    FiniteDimensional.finrank F K = 1 := by
+    Module.finrank F K = 1 := by
   haveI : Algebra.IsSeparable F K := Algebra.IsSeparable.of_integral F K
-  calc FiniteDimensional.finrank F K
-    _ = FiniteDimensional.finrank F F :=
+  calc Module.finrank F K
+    _ = Module.finrank F F :=
       (LinearEquiv.finrank_eq <|
         LinearEquiv.ofBijective
           (Algebra.linearMap F K)
           (IsPurelyInseparable.bijective_algebraMap_of_isSeparable F K)).symm
-    _ = 1 := FiniteDimensional.finrank_self F
+    _ = 1 := Module.finrank_self F
 
 /-- Degree of a simple purely inseparable extension is a power of the characteristic `p`. -/
 lemma purelyInseparable_finrank_adjoin_simple_pow (F : Type u) [Field F] {K : Type u} [Field K] [Algebra F K]
     [FiniteDimensional F K] [IsPurelyInseparable F K] (p : ℕ) [ExpChar F p] (a : K) :
-    ∃ ν : ℕ, FiniteDimensional.finrank F F⟮a⟯ = p ^ ν := by
+    ∃ ν : ℕ, Module.finrank F F⟮a⟯ = p ^ ν := by
   obtain ⟨k, _, h⟩ := IsPurelyInseparable.minpoly_eq_X_pow_sub_C F p a
   rw [IntermediateField.adjoin.finrank (IsIntegral.of_finite F a), h,
     Polynomial.natDegree_sub_C, Polynomial.natDegree_pow, Polynomial.natDegree_X, mul_one]
@@ -66,9 +66,9 @@ lemma purelyInseparable_finrank_adjoin_simple_pow (F : Type u) [Field F] {K : Ty
     (or `1` in case of characteristic zero, cf. `purelyInseparable_char0`). -/
 theorem purelyInseparable_finrank_pow (F K : Type u) [Field F] [Field K] [Algebra F K]
     [FiniteDimensional F K] [IsPurelyInseparable F K] {p : ℕ} (hp : p.Prime) [ExpChar F p] :
-    ∃! ν : ℕ, FiniteDimensional.finrank F K = p ^ ν := by
+    ∃! ν : ℕ, Module.finrank F K = p ^ ν := by
   /- adjoin induction -/
-  let P (L : IntermediateField F K) : Prop := ∃ k : ℕ, FiniteDimensional.finrank F L = p ^ k
+  let P (L : IntermediateField F K) : Prop := ∃ k : ℕ, Module.finrank F L = p ^ k
   have base : P ⊥ := by use 0; exact IntermediateField.finrank_bot
   have step (L : IntermediateField F K) (a : K) : P L → P (L⟮a⟯.restrictScalars F) := by
     intro hFL
@@ -79,10 +79,10 @@ theorem purelyInseparable_finrank_pow (F K : Type u) [Field F] [Field K] [Algebr
     haveI := IsPurelyInseparable.tower_bot L L⟮a⟯ K
     obtain ⟨l, hLLx⟩ := purelyInseparable_finrank_adjoin_simple_pow L p a
     use k + l
-    calc FiniteDimensional.finrank F (L⟮a⟯.restrictScalars F)
-      _ = FiniteDimensional.finrank F L⟮a⟯ := rfl
-      _ = (FiniteDimensional.finrank F L) * (FiniteDimensional.finrank L L⟮a⟯) :=
-        (FiniteDimensional.finrank_mul_finrank F L L⟮a⟯).symm
+    calc Module.finrank F (L⟮a⟯.restrictScalars F)
+      _ = Module.finrank F L⟮a⟯ := rfl
+      _ = (Module.finrank F L) * (Module.finrank L L⟮a⟯) :=
+        (Module.finrank_mul_finrank F L L⟮a⟯).symm
       _ = p ^ (k + l) := by rw [hFL, hLLx, pow_add p k l]
   obtain ⟨k, hk⟩ := IntermediateField.induction_on_adjoin P base step ⊤
   use k
@@ -111,7 +111,7 @@ noncomputable def finInsepLogRank : ℕ :=
     have p_prime := expChar_prime_of_ne_one F h
     Classical.choose (purelyInseparable_finrank_pow F K p_prime)
 
-lemma finInsepLogRank_def : FiniteDimensional.finrank F K = p ^ (finInsepLogRank F K p) := by
+lemma finInsepLogRank_def : Module.finrank F K = p ^ (finInsepLogRank F K p) := by
   rw [finInsepLogRank]
   split_ifs with hp
   · haveI := ExpChar.congr F p hp
@@ -129,7 +129,7 @@ lemma finInsepLogRank_tower (E : IntermediateField F K) :
       ← finInsepLogRank_def F E p,
       ← finInsepLogRank_def E K p,
       ← finInsepLogRank_def F K p]
-    exact FiniteDimensional.finrank_mul_finrank F E K
+    exact Module.finrank_mul_finrank F E K
 
 lemma finInsepLogRank_le_tower_bot (E : IntermediateField F K) :
         finInsepLogRank F E p ≤ finInsepLogRank F K p := by
@@ -186,7 +186,7 @@ lemma iRed'_map_add (a b : K) : iRed' F K p (a + b) = iRed' F K p a + iRed' F K 
     iRed'_algebraMap F p a,
     iRed'_algebraMap F p b,
     iRed'_algebraMap F p (a + b),
-    add_pow_expChar_pow K a b]
+    add_pow_expChar_pow a b]
 
 lemma iRed'_map_one : iRed' F K p 1 = 1 := by
   simp [iRed']
@@ -243,7 +243,7 @@ variable [ExpChar F p]
 /-- Iterated Frobenius endomorphism as a semilinear map. -/
 def iterateFrobeniusₛₗ (s : ℕ) : E →ₛₗ[iterateFrobenius F p s] E where
   toFun := (iterateFrobenius E p s).toFun
-  map_add' := add_pow_expChar_pow E
+  map_add' := by simp
   map_smul' := by
     intro a x
     simp [Algebra.smul_def, coe_iterateFrobenius]

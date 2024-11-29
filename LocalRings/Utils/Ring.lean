@@ -4,7 +4,7 @@ import Mathlib.Algebra.Polynomial.AlgebraMap
 import Mathlib.Algebra.Ring.Hom.Defs
 
 import Mathlib.RingTheory.Adjoin.PowerBasis
-import Mathlib.RingTheory.Ideal.QuotientOperations
+import Mathlib.RingTheory.Ideal.Quotient.Operations
 import Mathlib.RingTheory.IntegralClosure.IsIntegral.Defs
 import Mathlib.RingTheory.IntegralClosure.Algebra.Defs
 import Mathlib.RingTheory.LocalRing.Basic

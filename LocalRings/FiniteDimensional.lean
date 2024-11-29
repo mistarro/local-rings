@@ -93,8 +93,8 @@ lemma minpoly_map_frobenius (s : ℕ) (a : E) :
   /- both have same degree -/
   have hdeg : μ₁.natDegree = μ₂.natDegree := by
     calc μ₁.natDegree
-      _ = FiniteDimensional.finrank F F⟮a ^ p ^ s⟯ := (IntermediateField.adjoin.finrank hapi).symm
-      _ = FiniteDimensional.finrank F F⟮a⟯ := by rw [adjoin_a_pow_p_eq F p s a]
+      _ = Module.finrank F F⟮a ^ p ^ s⟯ := (IntermediateField.adjoin.finrank hapi).symm
+      _ = Module.finrank F F⟮a⟯ := by rw [adjoin_a_pow_p_eq F p s a]
       _ = μ.natDegree := IntermediateField.adjoin.finrank hai
       _ = μ₂.natDegree := (Polynomial.natDegree_map_eq_of_injective (iterateFrobenius F p s).injective μ).symm
   /- one divides the other -/
@@ -146,15 +146,15 @@ variable {K₁ K₂ : Type u} [Field K₁] [Field K₂] [Algebra F K₁] [Algebr
 /- Auxiliary lemma to workaround problems with typeclass search. -/
 lemma finrank_equality_aux
     {E₁ : IntermediateField F K₁} {E₂ : IntermediateField F K₂}
-    (h : FiniteDimensional.finrank F E₁ = FiniteDimensional.finrank F E₂) :
-    FiniteDimensional.finrank E₁ K₁ * FiniteDimensional.finrank F K₂ =
-    FiniteDimensional.finrank E₂ K₂ * FiniteDimensional.finrank F K₁:= by
-  rw [← FiniteDimensional.finrank_mul_finrank F E₁ K₁,
-    ← FiniteDimensional.finrank_mul_finrank F E₂ K₂,
+    (h : Module.finrank F E₁ = Module.finrank F E₂) :
+    Module.finrank E₁ K₁ * Module.finrank F K₂ =
+    Module.finrank E₂ K₂ * Module.finrank F K₁:= by
+  rw [← Module.finrank_mul_finrank F E₁ K₁,
+    ← Module.finrank_mul_finrank F E₂ K₂,
     mul_comm, ← mul_assoc]
-  apply congrArg (fun (x : ℕ) ↦ x * FiniteDimensional.finrank E₁ K₁)
+  apply congrArg (fun (x : ℕ) ↦ x * Module.finrank E₁ K₁)
   rw [mul_comm]
-  apply congrArg (fun (x : ℕ) ↦ FiniteDimensional.finrank E₂ K₂ * x)
+  apply congrArg (fun (x : ℕ) ↦ Module.finrank E₂ K₂ * x)
   exact h.symm
 
 variable [FiniteDimensional F K₁] [FiniteDimensional F K₂]
@@ -190,12 +190,12 @@ theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
   have hrs₂ : r₂ + s₂ = r := by simp only [s₂, add_tsub_cancel_of_le (le_max_right r₁ r₂)]
 
   /- Separable degrees. -/
-  let b₁ := FiniteDimensional.finrank F E₁
-  let b₂ := FiniteDimensional.finrank F E₂
+  let b₁ := Module.finrank F E₁
+  let b₂ := Module.finrank F E₂
   let d : ℕ := Nat.gcd b₁ b₂
   have hd : 0 < d := by
     apply Nat.gcd_pos_of_pos_left
-    apply FiniteDimensional.finrank_pos
+    apply Module.finrank_pos
   have hb₁d : d ∣ b₁ := Nat.gcd_dvd_left b₁ b₂
   have hb₂d : d ∣ b₂ := Nat.gcd_dvd_right b₁ b₂
   let a₁' := b₁ / d
