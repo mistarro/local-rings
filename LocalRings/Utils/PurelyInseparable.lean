@@ -42,16 +42,9 @@ open scoped IntermediateField
 
 /-- Purely inseparable extension in characteristic `0` is trivial. -/
 theorem purelyInseparable_char0 (F K : Type u) [Field F] [Field K] [Algebra F K]
-    [FiniteDimensional F K] [IsPurelyInseparable F K] [CharZero F] :
-    Module.finrank F K = 1 := by
+    [IsPurelyInseparable F K] [CharZero F] : Module.finrank F K = 1 := by
   haveI : Algebra.IsSeparable F K := Algebra.IsSeparable.of_integral F K
-  calc Module.finrank F K
-    _ = Module.finrank F F :=
-      (LinearEquiv.finrank_eq <|
-        LinearEquiv.ofBijective
-          (Algebra.linearMap F K)
-          (IsPurelyInseparable.bijective_algebraMap_of_isSeparable F K)).symm
-    _ = 1 := Module.finrank_self F
+  exact Field.finSepDegree_eq_finrank_of_isSeparable F K ▸ IsPurelyInseparable.finSepDegree_eq_one F K
 
 /-- Degree of a simple purely inseparable extension is a power of the characteristic `p`. -/
 lemma purelyInseparable_finrank_adjoin_simple_pow (F : Type u) [Field F] {K : Type u} [Field K] [Algebra F K]
@@ -93,16 +86,8 @@ theorem purelyInseparable_finrank_pow (F K : Type u) [Field F] [Field K] [Algebr
   · intro y hy
     exact (Nat.pow_eq_pow_iff_right <| Nat.Prime.one_lt hp).mp (hk ▸ hy).symm
 
-variable {F K : Type u} [Field F] [Field K] [Algebra F K] [IsPurelyInseparable F K]
-
-local instance {E : IntermediateField F K} : IsPurelyInseparable F E :=
-  IsPurelyInseparable.tower_bot F E K
-
-local instance {E : IntermediateField F K} : IsPurelyInseparable E K :=
-  IsPurelyInseparable.tower_top F E K
-
+variable (F K : Type u) [Field F] [Field K] [Algebra F K] [IsPurelyInseparable F K]
 variable [FiniteDimensional F K] (p : ℕ) [ExpChar F p]
-variable (F K)
 
 /-- A *logarithmic inseparable degree*: a natural number `r` such that the degree
     of the given extension is `p ^ r` (`r = 0` in characteristic `0`). -/
@@ -156,7 +141,7 @@ variable (K) in
     but we need a result in `F`, not in `K`, so it is defined as negated constant coefficient
     of `minpoly F a = X ^ p ^ k - c` raised to the proper complementary power of `p`. -/
 noncomputable def iRed' : K → F :=
-  fun a => (-Polynomial.aeval 0 (minpoly F a)) ^ p ^ finInsepLogRank F⟮a⟯ K p
+  fun a ↦ (-Polynomial.aeval 0 (minpoly F a)) ^ p ^ finInsepLogRank F⟮a⟯ K p
 
 /-- Action of `iRed'` on the top field. -/
 lemma iRed'_algebraMap (a : K) : algebraMap F K (iRed' F K p a) = a ^ p ^ finInsepLogRank F K p := by
