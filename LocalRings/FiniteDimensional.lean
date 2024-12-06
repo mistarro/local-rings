@@ -86,9 +86,9 @@ lemma minpoly_map_frobenius (s : ℕ) (a : E) :
       Polynomial.map_aeval_eq_aeval_map h_aMap_Frob_comm μ a
   rw [minpoly.aeval, RingHom.map_zero, iterateFrobenius_def] at hμ₂aeval
   have hai : IsIntegral F a := IsSeparable.isIntegral (Algebra.IsSeparable.isSeparable F a)
-  have hapi : IsIntegral F (a ^ p ^ s) := IsSeparable.isIntegral (Algebra.IsSeparable.isSeparable F (a ^ p ^ s))
+  have hapi : IsIntegral F (a ^ p ^ s) := IsIntegral.pow hai (p ^ s)
   /- both are monic -/
-  have hμ₁monic : μ₁.Monic := (minpoly.monic hapi)
+  have hμ₁monic : μ₁.Monic := minpoly.monic hapi
   have hμ₂monic : μ₂.Monic := (minpoly.monic hai).map (iterateFrobenius F p s)
   /- both have same degree -/
   have hdeg : μ₁.natDegree = μ₂.natDegree := by
@@ -99,7 +99,8 @@ lemma minpoly_map_frobenius (s : ℕ) (a : E) :
       _ = μ₂.natDegree := (Polynomial.natDegree_map_eq_of_injective (iterateFrobenius F p s).injective μ).symm
   /- one divides the other -/
   have hdvd : μ₁ ∣ μ₂ := minpoly.dvd F (a ^ p ^ s) hμ₂aeval.symm
-  exact Polynomial.eq_of_monic_of_eq_deg_of_dvd hμ₁monic hμ₂monic hdeg hdvd
+  symm
+  exact Polynomial.eq_of_monic_of_dvd_of_natDegree_le hμ₁monic hμ₂monic hdvd (le_of_eq hdeg.symm)
 
 variable [FiniteDimensional F E]
 

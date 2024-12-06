@@ -1,6 +1,3 @@
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Polynomial.Degree.Definitions
-import Mathlib.Algebra.Polynomial.Monic
 import Mathlib.Data.Nat.Defs
 import Mathlib.Order.Basic
 
@@ -14,16 +11,3 @@ protected theorem Nat.pow_eq_pow_iff_right {a n m : Nat} (h : 1 < a) : a ^ n = a
     ((Nat.pow_le_pow_iff_right h).mp (le_of_eq ha))
     ((Nat.pow_le_pow_iff_right h).mp (le_of_eq ha.symm)),
   fun he ↦ congrArg (a ^ ·) he⟩
-
-/-- Two monic polynomials of the same degree are equal if one divides the other.
-    Mathlib, do you have it somewhere? -/
-theorem Polynomial.eq_of_monic_of_eq_deg_of_dvd {R : Type u} [CommRing R]
-    {p q : Polynomial R} (hp : p.Monic) (hq : q.Monic)
-    (hdeg : p.natDegree = q.natDegree) (hdvd : p ∣ q) : p = q := by
-  obtain ⟨c, hc⟩ := hdvd
-  have hcm : c.Monic := (Monic.of_mul_monic_left hp (hc ▸ hq))
-  have hc_eq_1 :=
-    (Polynomial.Monic.natDegree_eq_zero_iff_eq_one hcm).mp <|
-      add_right_eq_self.mp
-        (hdeg ▸ hc ▸ Polynomial.Monic.natDegree_mul hp hcm).symm
-  exact mul_one p ▸ hc_eq_1 ▸ hc.symm
