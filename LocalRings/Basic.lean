@@ -2,16 +2,18 @@ import Mathlib.Algebra.Algebra.Hom
 import Mathlib.Algebra.Algebra.Prod
 import Mathlib.Algebra.Algebra.Subalgebra.Basic
 import Mathlib.Algebra.Field.Basic
-import Mathlib.Algebra.Module.Submodule.Ker
+import Mathlib.Algebra.Module.Defs
+import Mathlib.Algebra.Module.LinearMap.Defs
 import Mathlib.Algebra.Module.Submodule.Range
 import Mathlib.Algebra.Ring.Prod
+
+import Mathlib.LinearAlgebra.Span
 
 import Mathlib.RingTheory.LocalRing.Defs
 import Mathlib.RingTheory.LocalRing.Basic
 import Mathlib.RingTheory.LocalRing.RingHom.Basic
 import Mathlib.RingTheory.Trace.Basic
 
-import LocalRings.Utils.Module
 import LocalRings.Utils.Ring
 
 /-!
@@ -113,13 +115,12 @@ lemma isLocallyGenerated_surjective [Nontrivial A'] (f : A →ₐ[F] A')
     (hf : Function.Surjective f) (h : isLocallyGenerated F A) : isLocallyGenerated F A' := by
   let lA := localElements F A
   let lA' := localElements F A'
-  have hsub : f '' lA ⊆ lA' := by
-    intro y ⟨x, ⟨hx, hfxy⟩⟩
-    rw [← hfxy]
-    exact isLocalElement_map F f hx
+  have hsub : f '' lA ⊆ lA' := fun y ⟨x, ⟨hx, hfxy⟩⟩ ↦ hfxy ▸ isLocalElement_map F f hx
   replace hsub : (Submodule.span F lA).map f ≤ Submodule.span F lA' :=
-    span_transfer (f := f.toLinearMap) hsub
-  rwa [h, Submodule.map_top, LinearMap.range_eq_top.mpr hf, top_le_iff] at hsub
+    Set.Subset.trans
+      (Submodule.image_span_subset_span f lA)
+      (Submodule.span_mono hsub)
+  exact top_le_iff.mp <| LinearMap.range_eq_top.mpr hf ▸ Submodule.map_top f ▸ h ▸ hsub
 
 variable {K₁ K₂ : Type u} [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂]
 

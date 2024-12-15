@@ -20,7 +20,6 @@ import Mathlib.RingTheory.IntegralClosure.Algebra.Basic
 import Mathlib.RingTheory.Nilpotent.Defs
 
 import LocalRings.Basic
-import LocalRings.Utils.Module
 import LocalRings.Utils.PurelyInseparable
 import LocalRings.Utils.Trace
 

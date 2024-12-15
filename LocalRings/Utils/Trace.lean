@@ -2,7 +2,7 @@ import Mathlib.FieldTheory.Adjoin
 import Mathlib.RingTheory.Trace.Basic
 
 /-!
-# Results for trace map.
+# Results for trace map and minimal polynomials.
 -/
 
 open scoped IntermediateField

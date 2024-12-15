@@ -20,7 +20,6 @@ import Mathlib.RingTheory.IntegralClosure.Algebra.Basic
 import Mathlib.RingTheory.Nilpotent.Defs
 
 import LocalRings.Basic
-import LocalRings.Utils.Module
 import LocalRings.Utils.PurelyInseparable
 import LocalRings.Utils.Trace
 
@@ -129,15 +128,14 @@ variable (E) in
 lemma nontrivial_trace_iRed_frob (s : ℕ) (σ : F →+* F)
     [RingHomCompTriple (iterateFrobenius F p (PurelyInseparable.exponent E K p)) (iterateFrobenius F p s) σ] :
     (Algebra.trace F E).comp (PurelyInseparable.iRed_frobₛₗ F E K p s σ) ≠ 0 := by
+  simp [DFunLike.ne_iff]
   let r := PurelyInseparable.exponent E K p + s
   /- Trace is surjective, so there is `a : E` with `Algebra.trace F E a = 1` -/
   obtain ⟨a, ha⟩ := Algebra.trace_surjective F E 1
-  replace ha : Algebra.trace F E a ≠ 0 := by rw [ha]; exact one_ne_zero
+  replace ha : Algebra.trace F E a ≠ 0 := ha ▸ one_ne_zero
   replace ha : Algebra.trace F E (a ^ p ^ r) ≠ 0 := trace_a_frob_0 F p r a ha
-  have := PurelyInseparable.iRed_frobₛₗ_algebraMap_mid F E K p s a σ
-  simp [DFunLike.ne_iff]
-  use algebraMap E K a
-  rwa [this]
+  replace ha := PurelyInseparable.iRed_frobₛₗ_algebraMap_mid F E K p s a σ ▸ ha
+  exact ⟨algebraMap E K a, ha⟩
 
 section FiniteDimensional
 
