@@ -127,14 +127,14 @@ variable (E) in
 /-- In characteristic `p > 0`, composition of the trace map for separable part and
     `iRed` for purely inseparable one is non-trivial. -/
 lemma nontrivial_trace_iRed_frob (s : ℕ) (σ : F →+* F)
-    [RingHomCompTriple (iterateFrobenius F p (finInsepLogRank E K p)) (iterateFrobenius F p s) σ] :
-    (Algebra.trace F E).comp (iRed_frobₛₗ F E K p s σ) ≠ 0 := by
-  let r := finInsepLogRank E K p + s
+    [RingHomCompTriple (iterateFrobenius F p (PurelyInseparable.exponent E K p)) (iterateFrobenius F p s) σ] :
+    (Algebra.trace F E).comp (PurelyInseparable.iRed_frobₛₗ F E K p s σ) ≠ 0 := by
+  let r := PurelyInseparable.exponent E K p + s
   /- Trace is surjective, so there is `a : E` with `Algebra.trace F E a = 1` -/
   obtain ⟨a, ha⟩ := Algebra.trace_surjective F E 1
   replace ha : Algebra.trace F E a ≠ 0 := by rw [ha]; exact one_ne_zero
   replace ha : Algebra.trace F E (a ^ p ^ r) ≠ 0 := trace_a_frob_0 F p r a ha
-  have := iRed_frobₛₗ_algebraMap_mid F E K p s a σ
+  have := PurelyInseparable.iRed_frobₛₗ_algebraMap_mid F E K p s a σ
   simp [DFunLike.ne_iff]
   use algebraMap E K a
   rwa [this]
@@ -160,78 +160,56 @@ lemma finrank_equality_aux
 
 variable [FiniteDimensional F K₁] [FiniteDimensional F K₂]
 
-/-- Uniform definition of `FiniteDimensional` to be used in the generic theorem.
-    Original definition is:
-      FiniteDimensional (K : Type u_1) (V : Type u_2) [DivisionRing K] [AddCommGroup V] [Module K V] : Prop
-  -/
-def UFiniteDimensional : Prop := FiniteDimensional F A
-
 /-- For finite-dimensional extensions `K₁`, `K₂` of `F`, the `F`-algebra `K₁ × K₂`
     is not locally generated. -/
 theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
-    [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂] :
-    UFiniteDimensional F K₁ → UFiniteDimensional F K₂ → ¬isLocallyGenerated F (K₁ × K₂) := by
-  intro fdK₁ fdK₂ h
-  haveI : FiniteDimensional F K₁ := fdK₁
-  haveI : FiniteDimensional F K₂ := fdK₂
+    [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂]
+    [FiniteDimensional F K₁] [FiniteDimensional F K₂] (p : ℕ) [ExpChar F p] :
+    ¬isLocallyGenerated F (K₁ × K₂) := by
+  intro h
   let E₁ := separableClosure F K₁
   let E₂ := separableClosure F K₂
   haveI : IsPurelyInseparable E₁ K₁ := separableClosure.isPurelyInseparable F K₁
   haveI : IsPurelyInseparable E₂ K₂ := separableClosure.isPurelyInseparable F K₂
-  letI p := ringExpChar F
-  haveI : ExpChar F p := inferInstance
 
-  /- Purely inseparable (logarithmic) degrees. -/
-  let r₁ : ℕ := finInsepLogRank E₁ K₁ p
-  let r₂ : ℕ := finInsepLogRank E₂ K₂ p
+  /- Purely inseparable part. -/
+  let r₁ : ℕ := PurelyInseparable.exponent E₁ K₁ p
+  let r₂ : ℕ := PurelyInseparable.exponent E₂ K₂ p
   let r := max r₁ r₂
   let s₁ : ℕ := r - r₁
   let s₂ : ℕ := r - r₂
-  have hrs₁ : r₁ + s₁ = r := by simp only [s₁, add_tsub_cancel_of_le (le_max_left r₁ r₂)]
-  have hrs₂ : r₂ + s₂ = r := by simp only [s₂, add_tsub_cancel_of_le (le_max_right r₁ r₂)]
+  have hrs₁ : r₁ + s₁ = r := by simp only [s₁, Nat.add_sub_cancel' (le_max_left r₁ r₂)]
+  have hrs₂ : r₂ + s₂ = r := by simp only [s₂, Nat.add_sub_cancel' (le_max_right r₁ r₂)]
 
-  /- Separable degrees. -/
+  /- Separable part. -/
   let b₁ := Module.finrank F E₁
   let b₂ := Module.finrank F E₂
   let d : ℕ := Nat.gcd b₁ b₂
-  have hd : 0 < d := by
-    apply Nat.gcd_pos_of_pos_left
-    apply Module.finrank_pos
   have hb₁d : d ∣ b₁ := Nat.gcd_dvd_left b₁ b₂
   have hb₂d : d ∣ b₂ := Nat.gcd_dvd_right b₁ b₂
   let a₁' := b₁ / d
   let a₂' := b₂ / d
-  have a_coprime : Nat.gcd a₁' a₂' = 1 := by rw [Nat.gcd_div hb₁d hb₂d, Nat.div_self hd]
   let a₁ : F := a₁'
   let a₂ : F := a₂'
   have a_nonzero : a₁ ≠ 0 ∨ a₂ ≠ 0 := by
     by_contra hc
     push_neg at hc
-    /- The following is simpler but requires `p : ℕ` and `ExpChar F p` as parameters:
+    have hd : 0 < d := Nat.gcd_pos_of_pos_left b₂ (Module.finrank_pos (R := F) (M := E₁))
+    have a_coprime : Nat.Coprime a₁' a₂' := Nat.coprime_div_gcd_div_gcd hd
     rcases ‹ExpChar F p› with _ | ⟨hprime⟩
-    · simp [Nat.cast_eq_zero] at hc
+    · simp [a₁, a₂, Nat.cast_eq_zero] at hc
       simp [hc.1, hc.2] at a_coprime
     · simp only [CharP.cast_eq_zero_iff F p] at hc
       rw [← Nat.dvd_gcd_iff, a_coprime, Nat.dvd_one] at hc
       rw [hc] at hprime
       contradiction
-    --/
-    by_cases h : p = 1
-    · haveI := ExpChar.congr F p h /- ExpChar F 1 -/
-      haveI := charZero_of_expChar_one' F /- CharZero F -/
-      simp [a₁, a₂, Nat.cast_eq_zero] at hc
-      simp [hc.1, hc.2] at a_coprime
-    · haveI := charP_of_expChar_prime' (R := F) h /- CharP F p -/
-      simp only [CharP.cast_eq_zero_iff F p] at hc
-      rw [← Nat.dvd_gcd_iff, a_coprime, Nat.dvd_one] at hc
-      exact h hc
 
   /- Define the semilinear map `T : K₁ × K₂ →ₛₗ[σ] F`. -/
   let σ := iterateFrobenius F p r
   haveI := RingHomCompTriple.iterateFrobenius F p hrs₁
   haveI := RingHomCompTriple.iterateFrobenius F p hrs₂
-  let T₁ := ((Algebra.trace F E₁).comp (iRed_frobₛₗ F E₁ K₁ p s₁ σ)).comp (LinearMap.fst F K₁ K₂)
-  let T₂ := ((Algebra.trace F E₂).comp (iRed_frobₛₗ F E₂ K₂ p s₂ σ)).comp (LinearMap.snd F K₁ K₂)
+  let T₁ := ((Algebra.trace F E₁).comp (PurelyInseparable.iRed_frobₛₗ F E₁ K₁ p s₁ σ)).comp (LinearMap.fst F K₁ K₂)
+  let T₂ := ((Algebra.trace F E₂).comp (PurelyInseparable.iRed_frobₛₗ F E₂ K₂ p s₂ σ)).comp (LinearMap.snd F K₁ K₂)
   let T : K₁ × K₂ →ₛₗ[σ] F := a₂ • T₁ - a₁ • T₂
   let U : Subspace F (K₁ × K₂) := LinearMap.ker T
 
@@ -258,8 +236,8 @@ theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
   have hT2 : localElements F (K₁ × K₂) ⊆ U := by
     intro ⟨α₁, α₂⟩ hα
     simp [U, T, T₁, T₂, sub_eq_zero]
-    set β₁ : E₁ := iRed_frobₛₗ F E₁ K₁ p s₁ σ α₁
-    set β₂ : E₂ := iRed_frobₛₗ F E₂ K₂ p s₂ σ α₂
+    set β₁ : E₁ := PurelyInseparable.iRed_frobₛₗ F E₁ K₁ p s₁ σ α₁
+    set β₂ : E₂ := PurelyInseparable.iRed_frobₛₗ F E₂ K₂ p s₂ σ α₂
 
     /- Goal is now `a₂ * (Algebra.trace F E₁ β₁) = a₁ * (Algebra.trace F E₂ β₂)`. -/
 
@@ -272,10 +250,10 @@ theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
     rw [
       show α₁ ^ p ^ r = algebraMap E₁ K₁ β₁ by
         rw [← hrs₁]
-        exact (iRed_frobₛₗ_algebraMap_top F E₁ K₁ p s₁ α₁ σ).symm,
+        exact (PurelyInseparable.iRed_frobₛₗ_algebraMap_top F E₁ K₁ p s₁ α₁ σ).symm,
       show α₂ ^ p ^ r = algebraMap E₂ K₂ β₂ by
         rw [← hrs₂]
-        exact (iRed_frobₛₗ_algebraMap_top F E₂ K₂ p s₂ α₂ σ).symm,
+        exact (PurelyInseparable.iRed_frobₛₗ_algebraMap_top F E₂ K₂ p s₂ α₂ σ).symm,
       minpoly.algebraMap_eq (algebraMap E₁ K₁).injective,
       minpoly.algebraMap_eq (algebraMap E₂ K₂).injective] at hα
 
@@ -294,12 +272,9 @@ theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
 
     apply congrArg (fun x : ℕ ↦ x * -(minpoly F β₂).nextCoeff)
 
-    rw [mul_comm, mul_comm (b₁ / d) _, ← Nat.mul_div_assoc, ← Nat.mul_div_assoc]
-    apply congrArg (fun x => x / d)
+    rw [mul_comm, mul_comm a₁' _, ← Nat.mul_div_assoc _ hb₁d, ← Nat.mul_div_assoc _ hb₂d]
+    apply congrArg (fun x ↦ x / d)
     exact finrank_equality_aux F h_finrank_eq
-    /- for some reason we have extra goals: `d ∣ b₁` and `d ∣ b₂` but those are assumptions -/
-    assumption
-    assumption
 
   /- Subspace generated by local elements is proper. -/
   have h_contra : Submodule.span F (localElements F (K₁ × K₂)) < ⊤ :=
@@ -308,12 +283,31 @@ theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
       (lt_top_iff_ne_top.mpr hU_ne_top) /- U < ⊤ -/
   exact (lt_top_iff_ne_top.mp h_contra) h
 
+/-- Uniform definition of `FiniteDimensional` to be used in the generic theorem.
+    Original definition is:
+      FiniteDimensional (K : Type u_1) (V : Type u_2) [DivisionRing K] [AddCommGroup V] [Module K V] : Prop
+  -/
+def UFiniteDimensional : Prop := FiniteDimensional F A
+
+/-- For finite-dimensional extensions `K₁`, `K₂` of `F`, the `F`-algebra `K₁ × K₂`
+    is not locally generated.
+    Version to be used with generic theorem. -/
+theorem notLocallyGenerated_KK_if_findim' (K₁ K₂ : Type u)
+    [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂] :
+    UFiniteDimensional F K₁ → UFiniteDimensional F K₂ → ¬isLocallyGenerated F (K₁ × K₂) := by
+  intro fdK₁ fdK₂
+  haveI : FiniteDimensional F K₁ := fdK₁
+  haveI : FiniteDimensional F K₂ := fdK₂
+  letI p := ringExpChar F
+  haveI : ExpChar F p := inferInstance
+  exact notLocallyGenerated_KK_if_findim F K₁ K₂ p
+
 variable {F A} in
 /-- Finite-dimensional algebras are local if they are locally generated. -/
 theorem isLocalRing_if_isLocallyGenerated_findim [Nontrivial A] [FiniteDimensional F A]
     (hLG : isLocallyGenerated F A) : LocalRing A := by
   have h : UFiniteDimensional F A := ‹FiniteDimensional F A›
-  refine isLocalAlgebra_if_isLocallyGenerated F ?_ notLocallyGenerated_KK_if_findim h hLG
+  refine isLocalAlgebra_if_isLocallyGenerated F ?_ notLocallyGenerated_KK_if_findim' h hLG
   intro _ _ _ _ _ _ _ _ f hf hA
   exact hA.of_surjective f hf
 

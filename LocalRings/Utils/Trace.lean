@@ -36,3 +36,15 @@ lemma trace_minpoly [FiniteDimensional F E] (a : E) :
     _ = n • Algebra.trace F F⟮a⟯ a' := trace_eq_trace_adjoin F a
     _ = n * -(minpoly F a).nextCoeff := by
       rw [trace_minpoly' F (IsIntegral.of_finite F a), Algebra.smul_def]; rfl
+
+/-- Classical result: the degree of the minimal polynomial divides the degree of the extension. -/
+lemma minoly.natDegree_dvd_finrank [FiniteDimensional F E] (a : E) :
+    (minpoly F a).natDegree ∣ Module.finrank F E := by
+  rw [← IntermediateField.adjoin.finrank (.of_finite F a)]
+  exact ⟨Module.finrank F⟮a⟯ E, (Module.finrank_mul_finrank F F⟮a⟯ E).symm⟩
+
+/-- Classical result: the degree of the minimal polynomial is less or equal to
+    the degree of the extension. -/
+lemma minoly.natDegree_le_finrank [FiniteDimensional F E] (a : E) :
+    (minpoly F a).natDegree ≤ Module.finrank F E :=
+  Nat.le_of_dvd Module.finrank_pos (minoly.natDegree_dvd_finrank F a)
