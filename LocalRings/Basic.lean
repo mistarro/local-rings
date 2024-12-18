@@ -38,6 +38,8 @@ import LocalRings.Utils.Ring
   an `F`-algebra `A` is local if it satisfies `P A` and is locally generated.
 -/
 
+universe u
+
 variable (F : Type u)
 variable {A A' : Type u}
 variable [Field F] [CommRing A] [Algebra F A] [CommRing A'] [Algebra F A']
@@ -48,57 +50,42 @@ def isLocalElement (a : A) : Prop :=
   ∃ B : Subalgebra F A, LocalRing B ∧ a ∈ B
 
 /-- In a local `F`-algebra, all elements are local -/
-theorem all_local_if_local [LocalRing A] (a : A) : isLocalElement F a := by
-  use ⊤
-  apply And.intro
-  · exact (Subsemiring.topEquiv : (⊤ : Subsemiring A) ≃+* A).symm.localRing
-  · exact Subsemiring.mem_top a
+theorem all_local_if_local [LocalRing A] (a : A) : isLocalElement F a :=
+  ⟨⊤, ⟨(Subsemiring.topEquiv : (⊤ : Subsemiring A) ≃+* A).symm.localRing,
+    Subsemiring.mem_top a⟩⟩
 
 /-- If all elements of an `F`-algebra are local then the algebra is local. -/
-theorem local_if_all_local [Nontrivial A] (ha : ∀ a : A, isLocalElement F a) : LocalRing A := by
-  apply LocalRing.of_isUnit_or_isUnit_one_sub_self
-  intro a
-  obtain ⟨B, ⟨hB, haB⟩⟩ := ha a
-  /- if `a` is a unit in `B`, then it is a unit in `R`
-     if `1 - a` is a unit in `B`, then it is a unit in `R` -/
-  exact Or.imp
-    (IsUnit.map B.subtype)
-    (IsUnit.map B.subtype)
-    (by apply LocalRing.isUnit_or_isUnit_one_sub_self (⟨a, haB⟩ : B))
+theorem local_if_all_local [Nontrivial A] (ha : ∀ a : A, isLocalElement F a) : LocalRing A :=
+  .of_isUnit_or_isUnit_one_sub_self fun a ↦ let ⟨B, ⟨_, haB⟩⟩ := ha a;
+    Or.imp
+      (IsUnit.map B.subtype)
+      (IsUnit.map B.subtype)
+      (LocalRing.isUnit_or_isUnit_one_sub_self (⟨a, haB⟩ : B))
 
 /-- A power of a local element is a local element. -/
-theorem isLocalElement_pow {a : A} (ha : isLocalElement F a) (n : ℕ) : isLocalElement F (a ^ n) := by
-  obtain ⟨B, ⟨hB, haB⟩⟩ := ha
-  use B
-  exact ⟨hB, Subalgebra.pow_mem B haB n⟩
+theorem isLocalElement_pow {a : A} (ha : isLocalElement F a) (n : ℕ) : isLocalElement F (a ^ n) :=
+  let ⟨B, ⟨hB, haB⟩⟩ := ha
+  ⟨B, ⟨hB, Subalgebra.pow_mem B haB n⟩⟩
 
 /-- A homomorphism of rings maps local elements to local elements. -/
 theorem isLocalElement_map [Nontrivial A'] (f : A →ₐ[F] A')
-    {a : A} (ha : isLocalElement F a) : isLocalElement F (f a) := by
-  obtain ⟨B, ⟨_, haB⟩⟩ := ha
+    {a : A} (ha : isLocalElement F a) : isLocalElement F (f a) :=
+  let ⟨B, ⟨_, haB⟩⟩ := ha
   let g : B →ₐ[F] A' := f.comp (B.val)
-  use g.range
-  apply And.intro
-  · /- goal: `g.range` is a local ring -/
-    exact LocalRing.of_surjective' g.rangeRestrict (g.rangeRestrict_surjective)
-  · /- goal: `f a ∈ g.range` -/
-    rw [AlgHom.mem_range g]
-    use ⟨a, haB⟩
-    rfl
+  ⟨g.range, ⟨.of_surjective' g.rangeRestrict (g.rangeRestrict_surjective),
+    (AlgHom.mem_range g).mpr ⟨⟨a, haB⟩, rfl⟩⟩⟩
 
 variable {F} in
 /-- If a local element `a` of an `F`-algebra `A` is integral then
     it belongs to a finite-dimensional local `F`-subalgebra of `A`. -/
 theorem isLocalElement_integral {a : A} (hi : IsIntegral F a) (hl : isLocalElement F a) :
-    ∃ B : Subalgebra F A, LocalRing B ∧ FiniteDimensional F B ∧ a ∈ B := by
-  let B' := Algebra.adjoin F {a}
-  use B'
-  obtain ⟨B, ⟨_, ha⟩⟩ := hl
+    ∃ B : Subalgebra F A, LocalRing B ∧ FiniteDimensional F B ∧ a ∈ B :=
   haveI := FiniteDimensional.of_integral_adjoin hi
-  exact ⟨LocalRing.of_subalgebra' F (Algebra.adjoin_le (Set.singleton_subset_iff.mpr ha))
-      (fun a' : B' ↦ IsUnit.iff_nonzerodivisor_of_integral F (IsIntegral.of_finite F a')),
-    FiniteDimensional.of_integral_adjoin hi,
-    Algebra.subset_adjoin (Set.mem_singleton a)⟩
+  let ⟨_, ⟨_, ha⟩⟩ := hl
+  ⟨Algebra.adjoin F {a}, ⟨.of_subalgebra' F (Algebra.adjoin_le (Set.singleton_subset_iff.mpr ha))
+      (fun a' ↦ IsUnit.of_nonzerodivisor_of_integral F (.of_finite F a')),
+    .of_integral_adjoin hi,
+    Algebra.subset_adjoin (Set.mem_singleton a)⟩⟩
 
 variable (A) in
 /-- Set of all local elements of an `F`-algebra `A`. -/
@@ -167,11 +154,7 @@ theorem isLocalAlgebra_if_isLocallyGenerated [Nontrivial A]
   let algK₁ : Algebra F K₁ := algebra_fromRingHom (RingHom.fst K₁ K₂)
   let algK₂ : Algebra F K₂ := algebra_fromRingHom (RingHom.snd K₁ K₂)
   /- promote `f'` to an `F`-algebra homomorphism -/
-  let f : A →ₐ[F] (K₁ × K₂) := by
-    apply AlgHom.mk' f'
-    intro _ _
-    simp_all [Algebra.smul_def]
-    rfl
+  let f : A →ₐ[F] (K₁ × K₂) := AlgHom.mk' f' (by intro _ _; simp [Algebra.smul_def]; rfl)
   /- compose `f` with projections on `K₁`... -/
   let f₁ := (AlgHom.fst F K₁ K₂).comp f
   have hf₁ : Function.Surjective f₁ := by

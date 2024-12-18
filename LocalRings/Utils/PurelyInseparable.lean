@@ -22,6 +22,8 @@ import LocalRings.Utils.Trace
     on the scalar field.
 -/
 
+universe u
+
 namespace PurelyInseparable
 
 open scoped IntermediateField

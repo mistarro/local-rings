@@ -33,6 +33,8 @@ import LocalRings.Utils.Trace
     if it is locally generated.
 -/
 
+universe u
+
 variable (F : Type u) [Field F] {E : Type u} [Field E] [Algebra F E]
 variable [Algebra.IsSeparable F E]
 variable (p : ℕ) [ExpChar F p]

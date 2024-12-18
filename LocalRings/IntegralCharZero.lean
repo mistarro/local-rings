@@ -37,6 +37,8 @@ import LocalRings.Utils.Trace
     algebra is local if it is locally generated.
 -/
 
+universe u
+
 section Integral
 
 variable (F A : Type u) [Field F] [CommRing A] [Algebra F A]

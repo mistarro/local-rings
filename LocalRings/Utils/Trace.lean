@@ -5,6 +5,8 @@ import Mathlib.RingTheory.Trace.Basic
 # Results for trace map and minimal polynomials.
 -/
 
+universe u
+
 open scoped IntermediateField
 
 /-- The trace map `Algebra.trace R R` is identity. -/
