@@ -231,7 +231,7 @@ variable {F A} in
 /-- Integral (equivalently algebraic) algebras are local if they are locally generated. -/
 theorem isLocalRing_if_isLocallyGenerated_integral [Nontrivial A]
     [Algebra.IsIntegral F A] [CharZero F]
-    (hLG : isLocallyGenerated F A) : LocalRing A := by
+    (hLG : isLocallyGenerated F A) : IsLocalRing A := by
   have h : UIntegralCharZero F A := ⟨‹_›, ‹_›⟩
   refine isLocalAlgebra_if_isLocallyGenerated F ?_ notLocallyGenerated_KK_if_integral h hLG
   intro F A K _ _ _ _ _ f hf ⟨_, hChar⟩

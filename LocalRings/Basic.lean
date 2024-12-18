@@ -7,7 +7,7 @@ import Mathlib.Algebra.Module.LinearMap.Defs
 import Mathlib.Algebra.Module.Submodule.Range
 import Mathlib.Algebra.Ring.Prod
 
-import Mathlib.LinearAlgebra.Span
+import Mathlib.LinearAlgebra.Span.Basic
 
 import Mathlib.RingTheory.LocalRing.Defs
 import Mathlib.RingTheory.LocalRing.Basic
@@ -47,20 +47,20 @@ variable [Field F] [CommRing A] [Algebra F A] [CommRing A'] [Algebra F A']
 /-- An element `a` of an `F`-algebra `A` is *local* iff
     it belongs to a local `F`-subalgebra of `A`. -/
 def isLocalElement (a : A) : Prop :=
-  ∃ B : Subalgebra F A, LocalRing B ∧ a ∈ B
+  ∃ B : Subalgebra F A, IsLocalRing B ∧ a ∈ B
 
 /-- In a local `F`-algebra, all elements are local -/
-theorem all_local_if_local [LocalRing A] (a : A) : isLocalElement F a :=
-  ⟨⊤, ⟨(Subsemiring.topEquiv : (⊤ : Subsemiring A) ≃+* A).symm.localRing,
+theorem all_local_if_local [IsLocalRing A] (a : A) : isLocalElement F a :=
+  ⟨⊤, ⟨(Subsemiring.topEquiv : (⊤ : Subsemiring A) ≃+* A).symm.isLocalRing,
     Subsemiring.mem_top a⟩⟩
 
 /-- If all elements of an `F`-algebra are local then the algebra is local. -/
-theorem local_if_all_local [Nontrivial A] (ha : ∀ a : A, isLocalElement F a) : LocalRing A :=
+theorem local_if_all_local [Nontrivial A] (ha : ∀ a : A, isLocalElement F a) : IsLocalRing A :=
   .of_isUnit_or_isUnit_one_sub_self fun a ↦ let ⟨B, ⟨_, haB⟩⟩ := ha a;
     Or.imp
       (IsUnit.map B.subtype)
       (IsUnit.map B.subtype)
-      (LocalRing.isUnit_or_isUnit_one_sub_self (⟨a, haB⟩ : B))
+      (IsLocalRing.isUnit_or_isUnit_one_sub_self (⟨a, haB⟩ : B))
 
 /-- A power of a local element is a local element. -/
 theorem isLocalElement_pow {a : A} (ha : isLocalElement F a) (n : ℕ) : isLocalElement F (a ^ n) :=
@@ -79,7 +79,7 @@ variable {F} in
 /-- If a local element `a` of an `F`-algebra `A` is integral then
     it belongs to a finite-dimensional local `F`-subalgebra of `A`. -/
 theorem isLocalElement_integral {a : A} (hi : IsIntegral F a) (hl : isLocalElement F a) :
-    ∃ B : Subalgebra F A, LocalRing B ∧ FiniteDimensional F B ∧ a ∈ B :=
+    ∃ B : Subalgebra F A, IsLocalRing B ∧ FiniteDimensional F B ∧ a ∈ B :=
   haveI := FiniteDimensional.of_integral_adjoin hi
   let ⟨_, ⟨_, ha⟩⟩ := hl
   ⟨Algebra.adjoin F {a}, ⟨.of_subalgebra' F (Algebra.adjoin_le (Set.singleton_subset_iff.mpr ha))
@@ -146,7 +146,7 @@ theorem isLocalAlgebra_if_isLocallyGenerated [Nontrivial A]
       Function.Surjective f → P F A → Q F K)
     (hKK : ∀ (F : Type u) [Field F] (K₁ K₂ : Type u) [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂],
       Q F K₁ → Q F K₂ → ¬isLocallyGenerated F (K₁ × K₂))
-    (h : P F A) (hLG : isLocallyGenerated F A) : LocalRing A := by
+    (h : P F A) (hLG : isLocallyGenerated F A) : IsLocalRing A := by
   by_contra hNonLocalA
   obtain ⟨K₁, K₂, fK₁, fK₂, f', hf⟩ := nonLocalProj hNonLocalA
   /- introduce compatible `F`-algebra structures -/

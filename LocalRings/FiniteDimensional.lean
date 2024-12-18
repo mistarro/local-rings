@@ -305,7 +305,7 @@ theorem notLocallyGenerated_KK_if_findim' (K₁ K₂ : Type u)
 variable {F A} in
 /-- Finite-dimensional algebras are local if they are locally generated. -/
 theorem isLocalRing_if_isLocallyGenerated_findim [Nontrivial A] [FiniteDimensional F A]
-    (hLG : isLocallyGenerated F A) : LocalRing A := by
+    (hLG : isLocallyGenerated F A) : IsLocalRing A := by
   have h : UFiniteDimensional F A := ‹FiniteDimensional F A›
   refine isLocalAlgebra_if_isLocallyGenerated F ?_ notLocallyGenerated_KK_if_findim' h hLG
   intro _ _ _ _ _ _ _ _ f hf hA
