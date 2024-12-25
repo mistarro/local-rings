@@ -12,7 +12,7 @@ import LocalRings.Utils.Trace
     the smallest natural number `e` such that `a ^ p ^ e ∈ F` for all `a ∈ K`.
 * `iRed`: the 'reduction' ring homomorphism `K →+* F` for a purely
     inseparable extension `F ⊆ K`, such that `algebraMap F K (iRed F K a) = a ^ p ^ e`,
-    where `e = PurelyInseparable.exponent F K`.
+    where `e = exponent F K`.
 * `iRed_frob`: composition of `iRed` with `iteratedFrobenius` on `F`.
 * `iRedₛₗ`: the map `iRed` as a semilinear map wrt. `iteratedFrobenius` on the scalar field.
 * `iRed_frobₛₗ`: the map `iRed_frob` as a semilinear map wrt. `iteratedFrobenius`
@@ -61,8 +61,8 @@ lemma minpoly_encode_natDegree (a : K) :
 
 lemma minpoly_encode_algebraMap (a : K) : algebraMap F K (elemReduct F p a) = a ^ p ^ (elemExponent F p a) := by
   have := minpoly_encode_def F p a ▸ minpoly.aeval F a
-  simp at this
-  exact (sub_eq_zero.mp this).symm
+  rw [map_sub, Polynomial.aeval_C, map_pow, Polynomial.aeval_X, sub_eq_zero] at this
+  exact this.symm
 
 
 variable (K) in
@@ -75,9 +75,8 @@ instance exponent_exists_of_finite_dimensional [FiniteDimensional F K] :
     Fact (ExponentExists F K p) := by
   rw [fact_iff]
   rcases ‹ExpChar F p› with _ | ⟨hp⟩
-  · use 0
-    simp
-    exact IsPurelyInseparable.surjective_algebraMap_of_isSeparable F K
+  · exact ⟨0, fun a ↦
+      IsPurelyInseparable.surjective_algebraMap_of_isSeparable F K (a ^ 1 ^ 0)⟩
   · let e := Nat.log p (Module.finrank F K)
     have h_elemexp_bound (a : K) : elemExponent F p a ≤ e :=
       Nat.le_log_of_pow_le (Nat.Prime.one_lt hp)
@@ -98,8 +97,8 @@ noncomputable def exponent : ℕ :=
   Nat.find ‹Fact (ExponentExists F K p)›.out
 
 open Classical in
-lemma exponent_def (a : K) : a ^ p ^ exponent F K p ∈ (algebraMap F K).range := by
-  exact Nat.find_spec ‹Fact (ExponentExists F K p)›.out a
+lemma exponent_def (a : K) : a ^ p ^ exponent F K p ∈ (algebraMap F K).range :=
+  Nat.find_spec ‹Fact (ExponentExists F K p)›.out a
 
 variable {p} in
 /-- An exponent of an element is less or equal than exponent of the extension. -/

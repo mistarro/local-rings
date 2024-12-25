@@ -20,6 +20,7 @@ import Mathlib.RingTheory.IntegralClosure.Algebra.Basic
 import Mathlib.RingTheory.Nilpotent.Defs
 
 import LocalRings.Basic
+import LocalRings.Utils.IntermediateField
 import LocalRings.Utils.PurelyInseparable
 import LocalRings.Utils.Trace
 
@@ -32,6 +33,12 @@ import LocalRings.Utils.Trace
 * `isLocalRing_if_isLocallyGenerated_findim`: a finite-dimensional algebra is local
     if it is locally generated.
 -/
+
+namespace LinearMap
+
+@[inherit_doc] infixr:90 " ∘ₛₗ "  => LinearMap.comp
+
+end LinearMap
 
 universe u
 
@@ -47,26 +54,21 @@ lemma adjoin_a_pow_p_eq (s : ℕ) (a : E) : F⟮a ^ p ^ s⟯ = F⟮a⟯ := by
   have ha : a ∈ F⟮a⟯ := IntermediateField.mem_adjoin_simple_self F a
   have hap : a ^ p ^ s ∈ F⟮a⟯ := pow_mem ha (p ^ s)
   let L := F⟮a ^ p ^ s⟯
-  let L' := L⟮a⟯
-  by_cases h : a ∈ L
-  · exact LE.le.antisymm
-      (IntermediateField.adjoin_simple_le_iff.mpr hap)
-      (IntermediateField.adjoin_simple_le_iff.mpr h)
-  · exfalso
-    /- `a ∉ F⟮a ^ p ^ s⟯` so `F⟮a ^ p ^ s⟯ < F⟮a⟯` is purely inseparable (and separable). -/
-    suffices IsPurelyInseparable L L' by
-      haveI : Algebra.IsSeparable L E := Algebra.isSeparable_tower_top_of_isSeparable F L E
-      haveI : Algebra.IsSeparable L L' := Algebra.isSeparable_tower_bot_of_isSeparable L L' E
-      have :=
-        IntermediateField.mem_bot.mp <|
-        IntermediateField.adjoin_simple_eq_bot_iff.mp <|
-        IntermediateField.eq_bot_of_isPurelyInseparable_of_isSeparable L'
-      simp at this
-      exact h this
-    simp_rw [IntermediateField.isPurelyInseparable_adjoin_simple_iff_pow_mem L E p]
-    use s
-    simp
-    exact IntermediateField.mem_adjoin_simple_self F (a ^ p ^ s)
+  /- The extension `L = F⟮a ^ p ^ s⟯ ⊆ F⟮a⟯ ≅ L⟮a⟯` is purely inseparable (and separable)
+    so `L⟮a⟯ = L`. -/
+  haveI : IsPurelyInseparable L L⟮a⟯ :=
+    (IntermediateField.isPurelyInseparable_adjoin_simple_iff_pow_mem L E p).mpr
+      ⟨s, RingHom.coe_range (algebraMap L E) ▸
+        IntermediateField.algebraMap_range_mem_iff.mpr <|
+        IntermediateField.mem_adjoin_simple_self F (a ^ p ^ s)⟩
+  have haL : a ∈ L :=
+    IntermediateField.algebraMap_range_mem_iff.mp <|
+      IntermediateField.mem_bot.mp <|
+      IntermediateField.adjoin_simple_eq_bot_iff.mp <|
+      IntermediateField.eq_bot_of_isPurelyInseparable_of_isSeparable L⟮a⟯
+  exact LE.le.antisymm
+    (IntermediateField.adjoin_simple_le_iff.mpr hap)
+    (IntermediateField.adjoin_simple_le_iff.mpr haL)
 
 variable [ExpChar E p] in
 /-- For a separable extension `F ⊆ E` of characteristic `p > 0`,
@@ -208,8 +210,11 @@ theorem notLocallyGenerated_KK_if_findim (K₁ K₂ : Type u)
   let σ := iterateFrobenius F p r
   haveI := RingHomCompTriple.iterateFrobenius F p hrs₁
   haveI := RingHomCompTriple.iterateFrobenius F p hrs₂
-  let T₁ := ((Algebra.trace F E₁).comp (PurelyInseparable.iRed_frobₛₗ F E₁ K₁ p s₁ σ)).comp (LinearMap.fst F K₁ K₂)
-  let T₂ := ((Algebra.trace F E₂).comp (PurelyInseparable.iRed_frobₛₗ F E₂ K₂ p s₂ σ)).comp (LinearMap.snd F K₁ K₂)
+  let T₁ := Algebra.trace F E₁ ∘ₛₗ PurelyInseparable.iRed_frobₛₗ F E₁ K₁ p s₁ σ ∘ₛₗ LinearMap.fst F K₁ K₂
+  let T₂ := Algebra.trace F E₂ ∘ₛₗ PurelyInseparable.iRed_frobₛₗ F E₂ K₂ p s₂ σ ∘ₛₗ LinearMap.snd F K₁ K₂
+  -- without `∘ₛₗ` notation:
+  -- let T₁ := ((Algebra.trace F E₁).comp (PurelyInseparable.iRed_frobₛₗ F E₁ K₁ p s₁ σ)).comp (LinearMap.fst F K₁ K₂)
+  -- let T₂ := ((Algebra.trace F E₂).comp (PurelyInseparable.iRed_frobₛₗ F E₂ K₂ p s₂ σ)).comp (LinearMap.snd F K₁ K₂)
   let T : K₁ × K₂ →ₛₗ[σ] F := a₂ • T₁ - a₁ • T₂
   let U : Subspace F (K₁ × K₂) := LinearMap.ker T
 

@@ -41,78 +41,75 @@ universe u
 
 section Integral
 
-variable (F A : Type u) [Field F] [CommRing A] [Algebra F A]
-variable {K₁ K₂ : Type u} [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂]
+section Trace
+
+variable (F K : Type*) [Field F] [Field K] [Algebra F K]
 
 open scoped IntermediateField /- `F⟮a⟯` notation for simple field adjoin -/
 
-section Trace
-
-variable (F K : Type u) [Field F] [Field K] [Algebra F K]
-
 /-- Absolute trace function from an algebraic extension `K` to the base field `F`. -/
 noncomputable def absoluteTrace' : K → F :=
-    fun a ↦ (Module.finrank F F⟮a⟯ : F)⁻¹ *
-      Algebra.trace F F⟮a⟯ (IntermediateField.AdjoinSimple.gen F a)
+  fun a ↦ Algebra.trace F F⟮a⟯ (IntermediateField.AdjoinSimple.gen F a) /
+    Module.finrank F F⟮a⟯
+
+variable {E : Type*} [Field E] [Algebra F E]
 
 section FiniteDimensional
+
+variable [CharZero F] [FiniteDimensional F E]
 
 /-- The absolute trace from a finite-dimensional extension `E` of `F` to `F`
     is the trace map scaled by `[E : F]`.
     This version accepts an argument from `E`. -/
-lemma absoluteTrace_eq_findim [CharZero F] {E : Type u} [Field E] [Algebra F E] [FiniteDimensional F E] (a : E) :
-    absoluteTrace' F E a =
-      (Module.finrank F E : F)⁻¹ * Algebra.trace F E a := by
-  rw [trace_eq_trace_adjoin F a, ← Module.finrank_mul_finrank F F⟮a⟯ E]
-  simp [absoluteTrace']
-  rw [mul_comm (Module.finrank F⟮a⟯ E : F)⁻¹, mul_assoc,
-    inv_mul_cancel_left₀ <| Nat.cast_ne_zero.mpr <| Nat.ne_zero_iff_zero_lt.mpr <|
-      Module.finrank_pos (R := F⟮a⟯) (M := E)]
+lemma absoluteTrace_eq_findim (a : E) :
+    absoluteTrace' F E a = Algebra.trace F E a / Module.finrank F E := by
+  have h := (Nat.cast_ne_zero (R := F)).mpr <|
+    Nat.pos_iff_ne_zero.mp <| Module.finrank_pos (R := F⟮a⟯) (M := E)
+  rw [trace_eq_trace_adjoin F a, ← Module.finrank_mul_finrank F F⟮a⟯ E,
+    nsmul_eq_mul, Nat.cast_mul,
+    mul_comm, mul_div_mul_right _ _ h]
+  rfl
 
 /-- The absolute trace from a finite-dimensional extension `E` of `F` to `F`
     is the trace map scaled by `[E : F]`. -/
-lemma absoluteTrace_eq_findim' [CharZero F] {E : Type u} [Field E] [Algebra F E] [FiniteDimensional F E] :
-    absoluteTrace' F E = (Module.finrank F E : F)⁻¹ • (Algebra.trace F E) :=
+lemma absoluteTrace_eq_findim' :
+    absoluteTrace' F E = Algebra.trace F E / Module.finrank F E :=
   funext (absoluteTrace_eq_findim F)
 
 end FiniteDimensional
 
 /-- The absolute trace transfers via (injective) maps. -/
-lemma absoluteTrace_map_eq {E : Type u} [Field E] [Algebra F E] (f : E →ₐ[F] K) (a : E) :
+lemma absoluteTrace_map_eq (f : E →ₐ[F] K) (a : E) :
     absoluteTrace' F K (f a) = absoluteTrace' F E a := by
   have he := Set.image_singleton ▸ IntermediateField.adjoin_map F {a} f
   let e := (F⟮a⟯.equivMap f).trans (IntermediateField.equivOfEq he)
-  simp [absoluteTrace']
-  rw [← LinearEquiv.finrank_eq e.toLinearEquiv]
-  apply congrArg
-  exact Algebra.trace_eq_of_algEquiv e (IntermediateField.AdjoinSimple.gen F a)
+  rw [absoluteTrace', absoluteTrace',
+    ← LinearEquiv.finrank_eq e.toLinearEquiv,
+    div_eq_mul_inv, div_eq_mul_inv]
+  exact congrArg (fun x : F ↦ x * _) <|
+    Algebra.trace_eq_of_algEquiv e (IntermediateField.AdjoinSimple.gen F a)
 
 /-- The absolute trace transfers via restriction to a subextension. -/
 lemma absoluteTrace_map_eq' {E : IntermediateField F K} (a : E) :
     absoluteTrace' F K a = absoluteTrace' F E a :=
   absoluteTrace_map_eq F K E.val a
 
+variable [CharZero F]
+
 variable {F} in
 /-- The absolute trace map `absoluteTrace' F F` is identity. -/
 theorem absoluteTrace_scalar (a : F) : absoluteTrace' F F a = a := by
-  simp [absoluteTrace']
-  have hbot : F⟮a⟯ = ⊥ := IntermediateField.adjoin_simple_eq_bot_iff.mpr <|
-      Subalgebra.algebraMap_mem (⊥ : Subalgebra F F) a
-  have hrank1 : Module.finrank F F⟮a⟯ = 1 := hbot ▸ IntermediateField.finrank_bot
-  have hrank1' := one_mul (Module.finrank F⟮a⟯ F) ▸
-    hrank1 ▸ Module.finrank_self F ▸ Module.finrank_mul_finrank F F⟮a⟯ F
-  simp [hrank1]
-  have htr := hrank1' ▸ trace_eq_trace_adjoin F a
-  simp at htr
-  exact htr.symm.trans (trace_self a)
+  rw [absoluteTrace_eq_findim F a, Module.finrank_self F,
+    Nat.cast_one, div_one, trace_self]
 
 /-- The absolute trace map is a left inverse of the algebra map. -/
-theorem absoluteTrace_algebraMap (a : F) : absoluteTrace' F K (algebraMap F K a) = a :=
+theorem absoluteTrace_algebraMap (a : F) :
+    absoluteTrace' F K (algebraMap F K a) = a :=
   (Algebra.ofId_apply K a ▸
     absoluteTrace_map_eq F K (Algebra.ofId F K) a).trans (absoluteTrace_scalar a)
 
 
-variable [CharZero F] [Algebra.IsIntegral F K]
+variable [Algebra.IsIntegral F K]
 
 /-- The absolute trace is additive. -/
 theorem absoluteTrace_add (a b : K) :
@@ -138,7 +135,7 @@ theorem absoluteTrace_add (a b : K) :
     absoluteTrace_eq_findim F a',
     absoluteTrace_eq_findim F b',
     absoluteTrace_eq_findim F ab',
-    ← Distrib.left_distrib, ← map_add]
+    ← add_div, ← map_add]
   rfl
 
 /-- The absolute trace commutes with scalar multiplication. -/
@@ -156,7 +153,7 @@ theorem absoluteTrace_smul (m : F) (a : K) :
     absoluteTrace_map_eq' F K ma',
     absoluteTrace_eq_findim F a',
     absoluteTrace_eq_findim F ma',
-    ← mul_smul_comm, ← map_smul]
+    ← smul_div_assoc, ← map_smul]
   rfl
 
 /-- Absolute trace function from an algebraic extension `K` to the base field `F`,
@@ -169,10 +166,12 @@ noncomputable def absoluteTrace : K →ₗ[F] F where
 /-- Absolute trace map is non-trivial. -/
 theorem nontrivial_absoluteTrace : absoluteTrace F K ≠ 0 := by
   simp [DFunLike.ne_iff, absoluteTrace]
-  use 1
-  exact (map_one (algebraMap F K) ▸ absoluteTrace_algebraMap F K 1) ▸ one_ne_zero
+  exact ⟨1, (map_one (algebraMap F K) ▸ absoluteTrace_algebraMap F K 1) ▸ one_ne_zero⟩
 
 end Trace
+
+variable (F A : Type u) [Field F] [CommRing A] [Algebra F A]
+variable {K₁ K₂ : Type u} [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂]
 
 /-- Uniform definition of *algebraic and of characteristic zero* to be used in
     the generic theorem.
@@ -212,7 +211,7 @@ theorem notLocallyGenerated_KK_if_integral (K₁ K₂ : Type u)
     have hα_int := IsIntegral_pair hα₁_int hα₂_int
     have hα_minpoly := local_minpoly_eq F hα_int hα_loc
     simp [U, T, sub_eq_zero, absoluteTrace, absoluteTrace']
-    exact congrArg₂ (fun (x : ℕ) (y : F) ↦ (x : F)⁻¹ * y)
+    exact congrArg₂ (fun (x : ℕ) (y : F) ↦ y / x)
       /- finrank = finrank -/
       (IntermediateField.adjoin.finrank hα₂_int ▸
         hα_minpoly ▸
