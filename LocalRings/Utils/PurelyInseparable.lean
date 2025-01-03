@@ -19,13 +19,11 @@ import LocalRings.Utils.Trace
     on the scalar field.
 -/
 
-universe u
-
 namespace PurelyInseparable
 
 open scoped IntermediateField
 
-variable (F K : Type u) [Field F] [Field K] [Algebra F K] [IsPurelyInseparable F K]
+variable (F K : Type*) [Field F] [Field K] [Algebra F K] [IsPurelyInseparable F K]
 variable (p : ℕ) [ExpChar F p]
 
 variable {K}
@@ -169,19 +167,26 @@ lemma iRed'_map_mul (a b : K) : iRed' F K p (a * b) = iRed' F K p a * iRed' F K 
     It is a ring homomorphism, so in particular it is injective. This, together with
     `algebraMap F K` (also injective), shows that for a purely inseparable field extension
     `F ⊆ K`, `F` and `K` have the same cardinality. -/
-noncomputable def iRed : K →+* F where
-  toFun := iRed' F K p
-  map_zero' := iRed'_map_zero F K p
-  map_add' := iRed'_map_add F K p
-  map_one' := iRed'_map_one F K p
-  map_mul' := iRed'_map_mul F K p
+noncomputable def iRed : K →+* F :=
+  { toFun := iRed' F K p
+    map_zero' := iRed'_map_zero F K p
+    map_add' := iRed'_map_add F K p
+    map_one' := iRed'_map_one F K p
+    map_mul' := iRed'_map_mul F K p }
 
 /-- Inseparable reduction map composed with iterated Frobenius (as a ring homomorphism). -/
 noncomputable def iRed_frob (s : ℕ) : K →+* F := (iterateFrobenius F p s).comp (iRed F K p)
 
+
 section SemiLinear
 
-variable (F E K : Type u) [Field F] [Field E] [Field K]
+/-
+  Inseparable reduction map as a semi-linear map wrt the iterated frobenius.
+  The setup is a tower of field extensions `F ⊆ E ⊆ K` with `F ⊆ E` arbitrary
+  and `E ⊆ K` purely inseparable with finite exponent.
+ -/
+
+variable (F E K : Type*) [Field F] [Field E] [Field K]
   [Algebra F E] [Algebra E K] [Algebra F K] [IsScalarTower F E K]
 variable [IsPurelyInseparable E K]
 variable (p : ℕ) [ExpChar E p]
@@ -201,23 +206,23 @@ lemma iRed'_algebraMap_mid (a : E) :
 
 variable [ExpChar F p]
 
-/-- Iterated Frobenius endomorphism as a semilinear map. -/
-def iterateFrobeniusₛₗ (s : ℕ) : E →ₛₗ[iterateFrobenius F p s] E where
-  toFun := (iterateFrobenius E p s).toFun
-  map_add' := by simp
-  map_smul' := by
-    intro a x
-    simp [Algebra.smul_def, coe_iterateFrobenius]
-    exact Or.inl ((algebraMap F E).map_iterate_frobenius p a s).symm
+lemma iRed'_map_smul (r : F) (a : K) :
+    iRed' E K p (r • a) = iterateFrobenius F p (exponent E K p) r • iRed' E K p a := by
+  rw [Algebra.smul_def _ (iRed' E K p a)]
+  apply (algebraMap E K).injective
+  rw [(algebraMap E K).map_mul,
+    ← IsScalarTower.algebraMap_apply,
+    iRed'_algebraMap E p a,
+    iRed'_algebraMap E p (r • a),
+    iterateFrobenius_def,
+    map_pow,
+    Algebra.smul_def,
+    mul_pow]
 
 /-- Inseparable reduction map as a semilinear map over `F` wrt iterated Frobenius map. -/
-noncomputable def iRedₛₗ : K →ₛₗ[iterateFrobenius F p (exponent E K p)] E where
-  toFun := iRed' E K p
-  map_add' := iRed'_map_add E K p
-  map_smul' := by
-    intro a x
-    simp [Algebra.smul_def]
-    rw [iRed'_map_mul, iRed'_algebraMap_bot, iterateFrobenius_def, map_pow]
+noncomputable def iRedₛₗ : K →ₛₗ[iterateFrobenius F p (exponent E K p)] E :=
+  { iRed E K p with
+    map_smul' := iRed'_map_smul F E K p }
 
 /-- Returns an instance of `RingHomCompTriple` for iterated Frobenius with a proper out param. -/
 lemma _root_.RingHomCompTriple.iterateFrobenius {m n r : ℕ} (h : m + n = r) :
@@ -234,15 +239,15 @@ noncomputable def iRed_frobₛₗ (s : ℕ) (σ : F →+* F)
 lemma iRed_frobₛₗ_algebraMap_mid (s : ℕ) (a : E) (σ : F →+* F)
     [RingHomCompTriple (iterateFrobenius F p (exponent E K p)) (iterateFrobenius F p s) σ] :
     iRed_frobₛₗ F E K p s σ (algebraMap E K a) = a ^ p ^ (exponent E K p + s) := by
-  simp [iRed_frobₛₗ, iRedₛₗ, LinearMap.iterateFrobenius];
-  rw [iRed'_algebraMap_mid, iterateFrobenius_def, ← pow_mul, ← pow_add, add_comm]
+  simp [iRed_frobₛₗ, iRedₛₗ, iRed]
+  rw [LinearMap.iterateFrobenius_def, iRed'_algebraMap_mid, ← pow_mul, ← pow_add, add_comm]
 
 /-- The map `iRed_frobₛₗ` acts on the top field essentially raising to the power of the characteristic. -/
 lemma iRed_frobₛₗ_algebraMap_top (s : ℕ) (a : K) (σ : F →+* F)
   [RingHomCompTriple (iterateFrobenius F p (exponent E K p)) (iterateFrobenius F p s) σ] :
     algebraMap E K (iRed_frobₛₗ F E K p s σ a) = a ^ p ^ (exponent E K p + s) := by
-  simp [iRed_frobₛₗ, iRedₛₗ, LinearMap.iterateFrobenius]
-  rw [iterateFrobenius_def, map_pow, iRed'_algebraMap, ← pow_mul, ← pow_add]
+  simp [iRed_frobₛₗ, iRedₛₗ, iRed]
+  rw [LinearMap.iterateFrobenius_def, map_pow, iRed'_algebraMap, ← pow_mul, ← pow_add]
 
 end SemiLinear
 

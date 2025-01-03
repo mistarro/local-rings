@@ -5,8 +5,6 @@ import Mathlib.RingTheory.Trace.Basic
 # Results for trace map and minimal polynomials.
 -/
 
-universe u
-
 open scoped IntermediateField
 
 /-- The trace map `Algebra.trace R R` is identity. -/
@@ -14,7 +12,7 @@ lemma trace_self {R : Type*} [CommRing R] [StrongRankCondition R] (a : R) :
     Algebra.trace R R a = a := by
   simpa using Algebra.trace_algebraMap (S := R) a
 
-variable (F : Type u) [Field F] {E : Type u} [Field E] [Algebra F E]
+variable (F : Type*) [Field F] {E : Type*} [Field E] [Algebra F E]
 
 /-- Classical result about trace value of a generator of a simple adjoin
     and its minimal polynomial coefficient. -/
