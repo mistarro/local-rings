@@ -9,7 +9,7 @@ import Mathlib.RingTheory.IntegralClosure.IsIntegral.Defs
 import Mathlib.RingTheory.IntegralClosure.Algebra.Defs
 import Mathlib.RingTheory.LocalRing.Basic
 import Mathlib.RingTheory.LocalRing.MaximalIdeal.Basic
-import Mathlib.RingTheory.Artinian
+import Mathlib.RingTheory.Artinian.Ring
 
 
 /-!
@@ -152,7 +152,7 @@ lemma IsLocalRing.of_subalgebra [IsLocalRing A] {B : Subalgebra F A}
     (h : ∀ a, a ∈ nonZeroDivisors B → IsUnit a) : IsLocalRing B := by
   let e : A ≃ₐ[F] _ := Subalgebra.topEquiv.symm
   haveI : IsLocalRing (⊤ : Subalgebra F A) :=
-    IsLocalRing.of_surjective' e.toAlgHom e.surjective
+    IsLocalRing.of_surjective' (R := A) e.toAlgHom e.surjective
   exact IsLocalRing.of_subalgebra' F (le_top : B ≤ ⊤) h
 
 end Algebra

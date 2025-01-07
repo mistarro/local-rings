@@ -69,7 +69,7 @@ theorem isLocalElement_map [Nontrivial A'] (f : A →ₐ[F] A')
     {a : A} (ha : isLocalElement F a) : isLocalElement F (f a) :=
   let ⟨B, ⟨_, haB⟩⟩ := ha
   let g : B →ₐ[F] A' := f.comp (B.val)
-  ⟨g.range, ⟨.of_surjective' g.rangeRestrict (g.rangeRestrict_surjective),
+  ⟨g.range, ⟨.of_surjective' (R := B) g.rangeRestrict (g.rangeRestrict_surjective),
     g.mem_range.mpr ⟨⟨a, haB⟩, rfl⟩⟩⟩
 
 variable {F} in

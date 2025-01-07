@@ -15,7 +15,7 @@ import Mathlib.LinearAlgebra.Dimension.Free
 import Mathlib.LinearAlgebra.FiniteDimensional.Defs
 import Mathlib.LinearAlgebra.Prod
 
-import Mathlib.RingTheory.Artinian
+import Mathlib.RingTheory.Artinian.Ring
 import Mathlib.RingTheory.IntegralClosure.Algebra.Basic
 import Mathlib.RingTheory.Nilpotent.Defs
 
