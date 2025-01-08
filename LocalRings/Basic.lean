@@ -109,25 +109,26 @@ lemma isLocallyGenerated_surjective [Nontrivial A'] {f : A →ₐ[F] A'}
 
 variable {K₁ K₂ : Type*} [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂]
 
-/-- If `(a₁, a₂) : K₁ × K₂` is local then `minpoly F a₁ = minpoly F a₂` -/
-lemma local_minpoly_eq {a₁ : K₁} {a₂ : K₂} (hi : IsIntegral F (a₁, a₂)) (hl : isLocalElement F (a₁, a₂)) :
-    minpoly F a₁ = minpoly F a₂ := by
-  let μ₁ := minpoly F a₁
+/-- If `(a₁, a₂) : K₁ × K₂` is local then `minpoly F a₁ = minpoly F a₂`. -/
+lemma local_minpoly_eq {a : K₁ × K₂} (hi : IsIntegral F a) (hl : isLocalElement F a) :
+    minpoly F a.1 = minpoly F a.2 := by
+  let μ₁ := minpoly F a.1
   obtain ⟨B, ⟨_, _, ha⟩⟩ := isLocalElement_integral hi hl
   haveI : IsArtinianRing B := isArtinian_of_tower F (inferInstance : IsArtinian F B)
   haveI : IsReduced B := isReduced_of_injective B.toSubring.subtype (by apply Subtype.coe_injective)
   letI : Field B := (artinian_reduced_local_is_field B).toField
-  let a : B := ⟨(a₁, a₂), ha⟩
+  let a' : B := ⟨a, ha⟩
   let f₁ := (AlgHom.fst F K₁ K₂).comp (B.val) /- projection `R →ₐ[F] K₁` -/
   let f₂ := (AlgHom.snd F K₁ K₂).comp (B.val) /- projection `R →ₐ[F] K₂` -/
-  have : f₁ (μ₁.aeval a) = 0 := (minpoly.aeval F a₁ ▸ μ₁.aeval_algHom_apply f₁ a).symm
-  have : μ₁.aeval a = 0 := (map_eq_zero f₁).mp this
-  have : μ₁.aeval a₂ = 0 := map_zero f₂ ▸ this ▸ μ₁.aeval_algHom_apply f₂ a
-  have ha₁ : IsIntegral F a₁ := hi.map (AlgHom.fst F K₁ K₂)
+  have := μ₁.aeval_algHom_apply f₁ a'
+  have : f₁ (μ₁.aeval a') = 0 := (minpoly.aeval F a.1 ▸ μ₁.aeval_algHom_apply f₁ a').symm
+  have : μ₁.aeval a' = 0 := (map_eq_zero f₁).mp this
+  have : μ₁.aeval a.2 = 0 := map_zero f₂ ▸ this ▸ μ₁.aeval_algHom_apply f₂ a'
+  have ha1int : IsIntegral F a.1 := hi.map (AlgHom.fst F K₁ K₂)
   exact minpoly.eq_of_irreducible_of_monic
-    (minpoly.irreducible ha₁)
+    (minpoly.irreducible ha1int)
     this
-    (minpoly.monic ha₁)
+    (minpoly.monic ha1int)
 
 universe u v
 
