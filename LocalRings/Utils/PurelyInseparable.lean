@@ -1,6 +1,5 @@
 import Mathlib.FieldTheory.PurelyInseparable
 
-import LocalRings.Utils.Basic
 import LocalRings.Utils.Trace
 
 /-!
