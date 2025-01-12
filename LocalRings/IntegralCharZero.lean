@@ -201,7 +201,7 @@ theorem notLocallyGenerated_KK_if_integral :
     intro α hα_loc
     have hα₁_int := Algebra.isIntegral_def.mp ‹_› α.1
     have hα₂_int := Algebra.isIntegral_def.mp ‹_› α.2
-    have hα_minpoly := local_minpoly_eq F (hα₁_int.pair hα₂_int) hα_loc
+    have hα_minpoly := local_minpoly_eq (hα₁_int.pair hα₂_int) hα_loc
     simp [U, T, sub_eq_zero, absoluteTrace, absoluteTrace']
     exact congrArg₂ (fun (x : ℕ) (y : F) ↦ y / x)
       /- finrank = finrank -/
@@ -221,10 +221,10 @@ variable {F A} in
 /-- Integral (equivalently algebraic) algebras are local if they are locally generated. -/
 theorem isLocalRing_if_isLocallyGenerated_integral [Nontrivial A]
     [Algebra.IsIntegral F A] [CharZero F]
-    (hLG : isLocallyGenerated F A) : IsLocalRing A := by
-  have h : UIntegralCharZero F A := ⟨‹_›, ‹_›⟩
-  refine isLocalAlgebra_if_isLocallyGenerated F ?_ notLocallyGenerated_KK_if_integral h hLG
-  intro F A K _ _ _ _ _ f hf ⟨_, hChar⟩
-  exact ⟨Algebra.IsIntegral.of_surjective hf, hChar⟩
+    (hLG : isLocallyGenerated F A) : IsLocalRing A :=
+  haveI h : UIntegralCharZero F A := ⟨‹_›, ‹_›⟩
+  isLocalAlgebra_if_isLocallyGenerated
+    (fun f hf ⟨_, hChar⟩ ↦ ⟨Algebra.IsIntegral.of_surjective f hf, hChar⟩)
+    notLocallyGenerated_KK_if_integral h hLG
 
 end Integral
