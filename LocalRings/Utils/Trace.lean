@@ -8,15 +8,17 @@ import Mathlib.RingTheory.Trace.Basic
 open scoped IntermediateField
 
 /-- The trace map `Algebra.trace R R` is identity. -/
-lemma trace_self {R : Type*} [CommRing R] [StrongRankCondition R] (a : R) :
+lemma trace_self {R : Type*} [CommRing R] (a : R) :
     Algebra.trace R R a = a := by
-  simpa using Algebra.trace_algebraMap (S := R) a
+  simpa only [Algebra.id.map_eq_self, Fintype.card_ofSubsingleton, one_smul]
+    using Algebra.trace_algebraMap_of_basis (.singleton (Fin 1) R) a
 
 variable (F : Type*) [Field F] {E : Type*} [Field E] [Algebra F E]
 
+variable {F} in
 /-- Classical result about trace value of a generator of a simple adjoin
     and its minimal polynomial coefficient. -/
-lemma trace_minpoly' {a : E} (ha : IsIntegral F a) :
+lemma trace_minpoly_adjoin_simple {a : E} (ha : IsIntegral F a) :
     Algebra.trace F F⟮a⟯ (IntermediateField.AdjoinSimple.gen F a) =
       -(minpoly F a).nextCoeff := by
   let a' := IntermediateField.AdjoinSimple.gen F a
@@ -35,7 +37,7 @@ lemma trace_minpoly [FiniteDimensional F E] (a : E) :
   calc Algebra.trace F E a
     _ = n • Algebra.trace F F⟮a⟯ a' := trace_eq_trace_adjoin F a
     _ = n * -(minpoly F a).nextCoeff := by
-      rw [trace_minpoly' F (IsIntegral.of_finite F a), Algebra.smul_def]; rfl
+      rw [trace_minpoly_adjoin_simple (.of_finite F a), Algebra.smul_def]; rfl
 
 /-- Classical result: the degree of the minimal polynomial divides the degree of the extension. -/
 lemma minoly.natDegree_dvd_finrank [FiniteDimensional F E] (a : E) :
