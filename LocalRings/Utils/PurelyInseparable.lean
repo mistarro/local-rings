@@ -77,7 +77,7 @@ instance exponent_exists_of_finite_dimensional [FiniteDimensional F K] :
   · let e := Nat.log p (Module.finrank F K)
     have h_elemexp_bound (a : K) : elemExponent F p a ≤ e :=
       Nat.le_log_of_pow_le (Nat.Prime.one_lt hp)
-        (minpoly_encode_natDegree F p a ▸ minoly.natDegree_le_finrank F a)
+        (minpoly_encode_natDegree F p a ▸ minpoly.natDegree_le a)
     refine ⟨e, fun a ↦ ⟨(elemReduct F p a) ^ p ^ (e - elemExponent F p a), ?_⟩⟩
     rw [RingHom.map_pow,
       minpoly_encode_algebraMap,
