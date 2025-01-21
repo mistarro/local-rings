@@ -58,9 +58,9 @@ lemma IsUnit.iff_mem_nonZeroDivisors_of_artinian {a : R} :
 /-- Commutative artinian reduced local ring is a field. -/
 instance isField_of_artinian_reduced_local [IsReduced R] [IsLocalRing R] : IsField R :=
   let m := IsLocalRing.maximalIdeal R
-  let e : R ≃+* R ⧸ m := (IsArtinianRing.equivPi R).trans <|
+  let e : R ≃+* _ := (IsArtinianRing.equivPi R).trans <|
     RingEquiv.piUnique fun I : SpecMax R ↦ R ⧸ I.1
-  MulEquiv.isField (R ⧸ m) (Ideal.Quotient.field m).toIsField e.toMulEquiv
+  MulEquiv.isField _ (Ideal.Quotient.field m).toIsField e.toMulEquiv
 
 end IsArtinian
 
