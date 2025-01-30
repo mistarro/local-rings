@@ -2,6 +2,7 @@ import Mathlib.Algebra.Algebra.Prod
 import Mathlib.Algebra.Polynomial.Monic
 import Mathlib.Algebra.Polynomial.AlgebraMap
 import Mathlib.Algebra.Ring.Hom.Defs
+import Mathlib.Algebra.Ring.Subsemiring.Defs
 
 import Mathlib.RingTheory.Adjoin.PowerBasis
 import Mathlib.RingTheory.Artinian.Ring
@@ -16,15 +17,18 @@ import Mathlib.RingTheory.LocalRing.Subring
 # Supplementary results for rings.
 -/
 
+/- Accepted in Mathlib4. -/
 /-- The maximal spectrum of a ring. -/
-def SpecMax (R : Type*) [Semiring R] : Set (Ideal R) :=
+def MaximalSpectrum (R : Type*) [Semiring R] : Set (Ideal R) :=
   {I | I.IsMaximal}
 
+/- Accepted in Mathlib4. -/
 /-- Maximal spectrum of a local ring is a singleton. -/
-instance (R : Type*) [CommSemiring R] [IsLocalRing R] : Unique (SpecMax R) :=
+instance (R : Type*) [CommSemiring R] [IsLocalRing R] : Unique (MaximalSpectrum R) :=
   { default := ⟨IsLocalRing.maximalIdeal R, IsLocalRing.maximalIdeal.isMaximal R⟩
     uniq := fun I ↦ Subtype.coe_injective <| IsLocalRing.eq_maximalIdeal I.2 }
 
+/- Accepted in Mathlib4. -/
 /-- Product of a singleton family of semirings is isomorphic to the only member of this family. -/
 def RingEquiv.piUnique {ι : Type*} (R : ι → Type*) [Unique ι] [∀ i, Semiring (R i)] :
     (∀ i, R i) ≃+* R default :=
@@ -32,96 +36,123 @@ def RingEquiv.piUnique {ι : Type*} (R : ι → Type*) [Unique ι] [∀ i, Semir
     map_add' := fun _ _ => rfl
     map_mul' := fun _ _ => rfl }
 
+section
+
+open nonZeroDivisors
+
+/- Accepted in Mathlib4. -/
 /-- If an element maps to a non-zero-divisor via injective homomorphism,
     then it is non-zero-divisor. -/
-theorem nonZeroDivisor.map {M N F : Type*} [MonoidWithZero M] [MonoidWithZero N]
+theorem mem_nonZeroDivisor_of_injective {M N F : Type*} [MonoidWithZero M] [MonoidWithZero N]
     [FunLike F M N] [MonoidWithZeroHomClass F M N] {f : F} (hf : Function.Injective f)
-    {a : M} : f a ∈ nonZeroDivisors N → a ∈ nonZeroDivisors M :=
-  fun h x hx ↦ hf <| map_zero f ▸ h (f x) (map_mul f x a ▸ map_zero f ▸ congrArg f hx)
+    {a : M} (ha : f a ∈ N⁰) : a ∈ M⁰ :=
+  fun x hx ↦ hf <| map_zero f ▸ ha (f x) (map_mul f x a ▸ map_zero f ▸ congrArg f hx)
+
+/- Accepted in Mathlib4. -/
+theorem comap_nonZeroDivisor_le_of_injective {M N F : Type*} [MonoidWithZero M] [MonoidWithZero N]
+    [FunLike F M N] [MonoidWithZeroHomClass F M N] {f : F} (hf : Function.Injective f) :
+    N⁰.comap f ≤ M⁰ :=
+  fun _ ha ↦ mem_nonZeroDivisor_of_injective hf (Submonoid.mem_comap.mp ha)
+
+end
 
 section IsArtinian
 
 variable {R : Type*} [CommRing R] [IsArtinianRing R]
 
-/-- If an element of an artinian ring is not a zero divisor then it is a unit. -/
-theorem IsUnit.of_mem_nonZeroDivisors_of_artinian {a : R} :
-    a ∈ nonZeroDivisors R → IsUnit a :=
-  fun ha ↦ IsUnit.isUnit_iff_mulLeft_bijective.mpr <|
-      IsArtinian.bijective_of_injective_endomorphism (LinearMap.mulLeft R a)
-        fun _ _ ↦ (mul_cancel_left_mem_nonZeroDivisors ha).mp
-
-/-- In an artinian ring, an element is a unit iff it is a non-zero-divisor. -/
-lemma IsUnit.iff_mem_nonZeroDivisors_of_artinian {a : R} :
-    IsUnit a ↔ a ∈ nonZeroDivisors R :=
-  ⟨IsUnit.mem_nonZeroDivisors, IsUnit.of_mem_nonZeroDivisors_of_artinian⟩
-
+/- Accepted in Mathlib4. -/
 /-- Commutative artinian reduced local ring is a field. -/
-instance isField_of_artinian_reduced_local [IsReduced R] [IsLocalRing R] : IsField R :=
+theorem IsArtinianRing.isField_of_isReduced_of_isLocalRing [IsReduced R] [IsLocalRing R] : IsField R :=
   let m := IsLocalRing.maximalIdeal R
   let e : R ≃+* _ := (IsArtinianRing.equivPi R).trans <|
-    RingEquiv.piUnique fun I : SpecMax R ↦ R ⧸ I.1
+    RingEquiv.piUnique fun I : MaximalSpectrum R ↦ R ⧸ I.1
   MulEquiv.isField _ (Ideal.Quotient.field m).toIsField e.toMulEquiv
+
+/- Accepted in Mathlib4. -/
+/-- If an element of an artinian ring is not a zero divisor then it is a unit. -/
+theorem isUnit_of_mem_nonZeroDivisors_of_artinian {a : R} (ha : a ∈ nonZeroDivisors R) :
+    IsUnit a :=
+  IsUnit.isUnit_iff_mulLeft_bijective.mpr <|
+    IsArtinian.bijective_of_injective_endomorphism (LinearMap.mulLeft R a)
+      fun _ _ ↦ (mul_cancel_left_mem_nonZeroDivisors ha).mp
 
 end IsArtinian
 
+namespace Algebra
+
+/- Accepted in Mathlib4. -/
+variable {R A : Type*} [CommRing R] [CommRing A] [Algebra R A] in
+theorem finite_adjoin_simple_of_isIntegral {x : A} (hi : IsIntegral R x) :
+    Module.Finite R (adjoin R {x}) :=
+  Module.Finite.iff_fg.mpr hi.fg_adjoin_singleton
+
+/- PR #21087 -/
+/-- Transfer `R`-algebra structure via a ring homomorphism. -/
+def of_algebra_of_ringHom (R) {A B} [CommSemiring R] [Semiring A] [CommSemiring B]
+    [Algebra R A] (f : A →+* B) : Algebra R B := f.comp (algebraMap R A) |>.toAlgebra
+
+end Algebra
+
 section Algebra
 
-/-- Transfer `R`-algebra structure via ring homomorphism. -/
-def algebra_fromRingHom {R A₁ A₂ : Type*} [CommSemiring R] [Semiring A₁] [CommSemiring A₂]
-    [Algebra R A₁] (f : A₁ →+* A₂) : Algebra R A₂ :=
-  (f.comp (algebraMap R A₁)).toAlgebra
+variable {R A : Type*}
+variable [CommRing R] [CommRing A] [Algebra R A]
 
-variable {F A : Type*}
-variable [Field F] [CommRing A] [Algebra F A]
+open nonZeroDivisors
 
-theorem FiniteDimensional.of_integral_adjoin {a : A} (hai : IsIntegral F a) :
-    FiniteDimensional F (Algebra.adjoin F {a}) :=
-  FiniteDimensional.of_fintype_basis (Algebra.adjoin.powerBasisAux hai)
-
-/-- Integral element of an `F`-algebra is either zero divisor or unit. -/
-theorem IsUnit.of_nonzerodivisor_of_integral {a : A} (hi : IsIntegral F a)
-    (ha : a ∈ nonZeroDivisors A) : IsUnit a :=
-  let B := Algebra.adjoin F {a}
-  let b : B := ⟨a, Algebra.subset_adjoin (Set.mem_singleton a)⟩
-  haveI := FiniteDimensional.of_integral_adjoin hi
-  haveI : IsArtinianRing B := isArtinian_of_tower F inferInstance
+/- PR #21199 -/
+/-- In an `R`-algebra over an artinian ring `R`, if an element is integral and
+is not a zero divisor, then it is a unit. -/
+theorem IsIntegral.isUnit_of_nonzerodivisor [IsArtinianRing R] {a : A} (hi : IsIntegral R a)
+    (ha : a ∈ A⁰) : IsUnit a :=
+  let B := Algebra.adjoin R {a}
+  let b : B := ⟨a, Algebra.self_mem_adjoin_singleton R a⟩
+  haveI : Module.Finite R B := Algebra.finite_adjoin_simple_of_isIntegral hi
+  haveI : IsArtinianRing B := isArtinian_of_tower R inferInstance
   have hinj : Function.Injective (B.subtype) := Subtype.val_injective
-  have hb : b ∈ nonZeroDivisors B := nonZeroDivisor.map hinj ha
-  (IsUnit.of_mem_nonZeroDivisors_of_artinian hb).map B.subtype
+  have hb : b ∈ B⁰ := comap_nonZeroDivisor_le_of_injective hinj ha
+  (isUnit_of_mem_nonZeroDivisors_of_artinian hb).map B.subtype
 
-/-- Integral element of an `F`-algebra is either zero divisor or unit. -/
-theorem IsUnit.iff_nonzerodivisor_of_integral {a : A} (hi : IsIntegral F a) :
-    IsUnit a ↔ a ∈ nonZeroDivisors A :=
-  ⟨IsUnit.mem_nonZeroDivisors, IsUnit.of_nonzerodivisor_of_integral hi⟩
+/- PR #21199 -/
+/-- Integral element of an algebra over artinian ring `R` is either a zero divisor or a unit. -/
+theorem IsIntegral.isUnit_iff_nonzerodivisor [IsArtinianRing R] {a : A} (hi : IsIntegral R a) :
+    IsUnit a ↔ a ∈ A⁰ :=
+  ⟨IsUnit.mem_nonZeroDivisors, IsIntegral.isUnit_of_nonzerodivisor hi⟩
 
-/- how to make an instance? -/
-theorem Subsemiring.nontrivial' {R : Type*} [Semiring R] {B C : Subsemiring R} [Nontrivial C]
-    (inc : B ≤ C) : Nontrivial B :=
-  nontrivial_of_ne 0 1 fun H ↦ zero_ne_one (congr_arg (Subsemiring.inclusion inc) H)
+/- PR #21168 -/
+/-- If a (semi)ring `R` in which every element is either invertible or a zero divisor
+embeds in a local (semi)ring `S`, then `R` is local. -/
+lemma IsLocalRing.of_injective {R S} [Semiring R] [Semiring S] [IsLocalRing S]
+    {f : R →+* S} (hf : Function.Injective f) (h : ∀ a, a ∈ R⁰ → IsUnit a) : IsLocalRing R := by
+  haveI : Nontrivial R := f.domain_nontrivial
+  refine IsLocalRing.of_is_unit_or_is_unit_of_add_one fun {a b} hab ↦ ?_
+  apply Or.imp (h _) (h _)
+  apply Or.imp (mem_nonZeroDivisor_of_injective hf) (mem_nonZeroDivisor_of_injective hf)
+  apply Or.imp IsUnit.mem_nonZeroDivisors IsUnit.mem_nonZeroDivisors
+  exact IsLocalRing.isUnit_or_isUnit_of_add_one <| map_add f .. ▸ map_one f ▸ congrArg f hab
 
-/-- Let `C` be a local `F`-algebra. If `B` is an `F`-subalgebra of `C` in which
-    every element is either invertible or a zero divisor, then `B` is local.
-    Version for `B` and `C` being subalgebras of an `F`-algebra `A`.
-  -/
-lemma IsLocalRing.of_subalgebra' {B C : Subalgebra F A} [IsLocalRing C] (inc : B ≤ C)
-    (h : ∀ a, a ∈ nonZeroDivisors B → IsUnit a) : IsLocalRing B :=
-  haveI : Nontrivial B := Subsemiring.nontrivial' inc
-  let ι := Subalgebra.inclusion inc
-  have hι := Subalgebra.inclusion_injective inc
-  IsLocalRing.of_isUnit_or_isUnit_one_sub_self
-    fun a ↦ Or.imp (h _) (h _) <|
-      Or.imp (nonZeroDivisor.map hι) (nonZeroDivisor.map hι) <|
-      map_sub ι .. ▸ map_one ι ▸
-        (IsLocalRing.isUnit_or_isUnit_one_sub_self (ι a)).imp
-          IsUnit.mem_nonZeroDivisors IsUnit.mem_nonZeroDivisors
+/- PR #21168 -/
+theorem Subsemiring.subtype_injective {S} [Semiring S] (R : Subsemiring S) :
+    Function.Injective R.subtype := Subtype.coe_injective
 
-/-- Let `A` be a local `F`-algebra. If `B` is an `F`-subalgebra of `A` in which
-    every element is either invertible or a zero divisor, then `B` is local.
-  -/
-lemma IsLocalRing.of_subalgebra [IsLocalRing A] {B : Subalgebra F A}
-    (h : ∀ a, a ∈ nonZeroDivisors B → IsUnit a) : IsLocalRing B :=
-  haveI : IsLocalRing (⊤ : Subalgebra F A) := isLocalRing_top
-  IsLocalRing.of_subalgebra' (le_top : B ≤ ⊤) h
+/- PR #21168 -/
+theorem Subsemiring.inclusion_injective {S} [Semiring S] {R R' : Subsemiring S} (inc : R ≤ R') :
+    Function.Injective (inclusion inc) := Set.inclusion_injective inc
+
+/- PR #21168 -/
+/-- If in a sub(semi)ring `R` of a local (semi)ring `S` every element is either
+invertible or a zero divisor, then `R` is local. -/
+lemma IsLocalRing.of_subring {S} [Semiring S] [IsLocalRing S] {R : Subsemiring S}
+    (h : ∀ a, a ∈ R⁰ → IsUnit a) : IsLocalRing R :=
+  IsLocalRing.of_injective R.subtype_injective h
+
+/- PR #21168 -/
+/-- If in a sub(semi)ring `R` of a local (semi)ring `R'` every element is either
+invertible or a zero divisor, then `R` is local.
+This version is for `R` and `R'` that are both sub(semi)rings of a (semi)ring `S`. -/
+lemma IsLocalRing.of_subring' {S} [Semiring S] {R R' : Subsemiring S} [IsLocalRing R'] (inc : R ≤ R')
+    (h : ∀ a, a ∈ R⁰ → IsUnit a) : IsLocalRing R :=
+  IsLocalRing.of_injective (Subsemiring.inclusion_injective inc) h
 
 end Algebra
 
@@ -129,27 +160,38 @@ namespace AlgHom
 
 /- Some missing simple lemmas regarding product of algebras. -/
 
-variable {R A B : Type*}
+variable {R A B C₁ C₂ : Type*}
 variable [CommSemiring R] [Semiring A] [Algebra R A] [Semiring B] [Algebra R B]
+variable [Semiring C₁] [Semiring C₂] [Algebra R C₁] [Algebra R C₂]
 
-variable (R)
-
-lemma fst_apply (a) : fst R A B a = a.1 := rfl
-lemma snd_apply (a) : snd R A B a = a.2 := rfl
+/- Accepted in Mathlib4. -/
+lemma prod_comp (f : A →ₐ[R] B) (g₁ : B →ₐ[R] C₁) (g₂ : B →ₐ[R] C₂) :
+    (g₁.prod g₂).comp f = (g₁.comp f).prod (g₂.comp f) := rfl
 
 end AlgHom
+
+namespace Polynomial
+
+variable {R A B : Type*} [CommSemiring R] [Semiring A] [Algebra R A] [Semiring B] [Algebra R B]
+
+/- Accepted in Mathlib4. -/
+/-- Polynomial evaluation on a pair is a product of the evaluations on the components. -/
+theorem aeval_prod (a : A × B) : aeval (R := R) a = (aeval a.1).prod (aeval a.2) :=
+  aeval_algHom (.fst R A B) a ▸ aeval_algHom (.snd R A B) a ▸
+    (aeval a).prod_comp (.fst R A B) (.snd R A B)
+
+/- Accepted in Mathlib4. -/
+/-- Polynomial evaluation on a pair is a pair of evaluations. -/
+theorem aeval_prod_apply (a : A × B) (p : Polynomial R) : p.aeval a = (p.aeval a.1, p.aeval a.2) := by
+  simp [aeval_prod]
+
+end Polynomial
 
 section IsIntegral
 
 variable {R A B : Type*} [CommRing R] [CommRing A] [Algebra R A] [CommRing B] [Algebra R B]
 
-/-- Polynomial evaluation on a pair is a pair of evaluations. -/
-theorem Polynomial.aeval_prod_apply (a : A × B) (p : Polynomial R) :
-    p.aeval a = (p.aeval a.1, p.aeval a.2) :=
-  AlgHom.id_apply (R := R) (p.aeval a) ▸ AlgHom.fst_apply R a ▸ AlgHom.snd_apply R a ▸
-    p.aeval_algHom_apply (AlgHom.fst R A B) a ▸ p.aeval_algHom_apply (AlgHom.snd R A B) a ▸
-    AlgHom.prod_apply (AlgHom.fst R A B) (AlgHom.snd R A B) (p.aeval a)
-
+/- Accepted in Mathlib4. -/
 /-- A pair of elements is integral if each component is integral. -/
 theorem IsIntegral.pair {a : A × B} (ha₁ : IsIntegral R a.1) (ha₂ : IsIntegral R a.2) :
     IsIntegral R a := by
@@ -162,16 +204,18 @@ theorem IsIntegral.pair {a : A × B} (ha₁ : IsIntegral R a.1) (ha₂ : IsInteg
     Polynomial.aeval_mul, hμ₂Eval, mul_zero]
   rfl
 
+/- Accepted in Mathlib4. -/
 /-- Product of two integral algebras is an integral algebra. -/
 instance Algebra.IsIntegral.prod [Algebra.IsIntegral R A] [Algebra.IsIntegral R B] :
     Algebra.IsIntegral R (A × B) :=
   Algebra.isIntegral_def.mpr fun a ↦
-    IsIntegral.pair (Algebra.isIntegral_def.mp ‹_› a.1) (Algebra.isIntegral_def.mp ‹_› a.2)
+    (Algebra.isIntegral_def.mp ‹_› a.1).pair (Algebra.isIntegral_def.mp ‹_› a.2)
 
+/- Accepted in Mathlib4. -/
 /-- Image of an integral algebra is an integral algebra. -/
 theorem Algebra.IsIntegral.of_surjective [Algebra.IsIntegral R A]
     (f : A →ₐ[R] B) (hf : Function.Surjective f) : Algebra.IsIntegral R B :=
   Algebra.isIntegral_def.mpr fun b ↦ let ⟨a, ha⟩ := hf b
-    ha ▸ IsIntegral.map f (Algebra.isIntegral_def.mp ‹_› a)
+    ha ▸ (Algebra.isIntegral_def.mp ‹_› a).map f
 
 end IsIntegral

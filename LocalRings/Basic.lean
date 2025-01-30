@@ -10,9 +10,7 @@ import Mathlib.Algebra.Ring.Prod
 import Mathlib.LinearAlgebra.Span.Basic
 
 import Mathlib.RingTheory.Ideal.Quotient.Operations
-import Mathlib.RingTheory.LocalRing.Defs
 import Mathlib.RingTheory.LocalRing.Basic
-import Mathlib.RingTheory.LocalRing.RingHom.Basic
 import Mathlib.RingTheory.Trace.Basic
 
 import LocalRings.Utils.Ring
@@ -79,12 +77,13 @@ theorem isLocalElement_map [Nontrivial A'] (f : A →ₐ[F] A')
     it belongs to a finite-dimensional local `F`-subalgebra of `A`. -/
 theorem isLocalElement_integral {a : A} (hi : IsIntegral F a) (hl : isLocalElement F a) :
     ∃ B : Subalgebra F A, IsLocalRing B ∧ FiniteDimensional F B ∧ a ∈ B :=
-  haveI hfd := FiniteDimensional.of_integral_adjoin hi
-  let ⟨_B, ⟨_, ha⟩⟩ := hl
-  ⟨Algebra.adjoin F {a},
-    ⟨.of_subalgebra' (Algebra.adjoin_le (Set.singleton_subset_iff.mpr ha))
-      (fun a' ↦ .of_nonzerodivisor_of_integral (.of_finite F a')), hfd,
-      Algebra.subset_adjoin (Set.mem_singleton a)⟩⟩
+  let B := Algebra.adjoin F {a}
+  haveI hfd := Algebra.finite_adjoin_simple_of_isIntegral hi
+  have hi (b : B) := IsIntegral.of_finite F b
+  let ⟨_, ⟨_, ha⟩⟩ := hl
+  ⟨B, ⟨.of_subring' (Algebra.adjoin_le (Set.singleton_subset_iff.mpr ha))
+    fun b ↦ (hi b).isUnit_of_nonzerodivisor, hfd,
+    Algebra.self_mem_adjoin_singleton F a⟩⟩
 
 variable (F A) in
 /-- Set of all local elements of an `F`-algebra `A`. -/
@@ -116,7 +115,7 @@ lemma local_minpoly_eq {K₁ K₂ : Type*} [Field K₁] [Field K₂] [Algebra F 
   obtain ⟨B, ⟨_, _, ha⟩⟩ := isLocalElement_integral hi hl
   haveI : IsArtinianRing B := isArtinian_of_tower F inferInstance
   haveI : IsReduced B := isReduced_of_injective B.toSubring.subtype (by apply Subtype.coe_injective)
-  letI : Field B := isField_of_artinian_reduced_local.toField
+  letI : Field B := IsArtinianRing.isField_of_isReduced_of_isLocalRing.toField
   let a' : B := ⟨a, ha⟩
   let f₁ := (AlgHom.fst F K₁ K₂).comp (B.val) /- projection `B →ₐ[F] K₁` -/
   let f₂ := (AlgHom.snd F K₁ K₂).comp (B.val) /- projection `B →ₐ[F] K₂` -/
@@ -171,18 +170,17 @@ theorem isLocalAlgebra_if_isLocallyGenerated {F : Type u} {A : Type v}
   by_contra hNonLocalA
   let ⟨K₁, K₂, fK₁, fK₂, f', hf'⟩ := nonLocalProj hNonLocalA
   /- introduce compatible `F`-algebra structures -/
-  let algKK : Algebra F (K₁ × K₂) := algebra_fromRingHom f'
-  let algK₁ : Algebra F K₁ := algebra_fromRingHom (RingHom.fst K₁ K₂)
-  let algK₂ : Algebra F K₂ := algebra_fromRingHom (RingHom.snd K₁ K₂)
+  let algK₁ : Algebra F K₁ := .of_algebra_of_ringHom F <| (RingHom.fst K₁ K₂).comp f'
+  let algK₂ : Algebra F K₂ := .of_algebra_of_ringHom F <| (RingHom.snd K₁ K₂).comp f'
   /- promote `f'` to an `F`-algebra homomorphism -/
-  let f : A →ₐ[F] (K₁ × K₂) := AlgHom.mk f' fun _r ↦ rfl
+  let f : A →ₐ[F] (K₁ × K₂) := ⟨f', fun _ ↦ rfl⟩
   have hf : Function.Surjective f := hf'
   /- compose `f` with projections on `K₁`... -/
   let f₁ := (AlgHom.fst F K₁ K₂).comp f
   have hf₁ : Function.Surjective f₁ :=
-    (AlgHom.fst ..).coe_comp f ▸ Function.Surjective.comp Prod.fst_surjective hf
+    (AlgHom.fst F K₁ K₂).coe_comp f ▸ Function.Surjective.comp Prod.fst_surjective hf
   /- ... and `K₂` -/
   let f₂ := (AlgHom.snd F K₁ K₂).comp f
   have hf₂ : Function.Surjective f₂ :=
-    (AlgHom.snd ..).coe_comp f ▸ Function.Surjective.comp Prod.snd_surjective hf
+    (AlgHom.snd F K₁ K₂).coe_comp f ▸ Function.Surjective.comp Prod.snd_surjective hf
   exact hKK F (hPQ f₁ hf₁ h) (hPQ f₂ hf₂ h) (isLocallyGenerated_surjective hf hLG)

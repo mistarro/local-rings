@@ -51,33 +51,9 @@ lemma interateFrobenius_algebraMap_comm [ExpChar E p] (s : ℕ) :
     (iterateFrobenius_def p s (algebraMap F E x)).symm.trans <|
     ((iterateFrobenius E p s).comp_apply (algebraMap F E) x).symm)
 
-variable [Algebra.IsSeparable F E]
+variable [Algebra.IsSeparable F E] [ExpChar E p]
 
 open scoped IntermediateField
-
-/-- For a separable extension `F ⊆ E` of characteristic `p > 0`,
-    adjoining `a` to `F` is same as adjoining `a ^ p ^ s`. -/
-lemma adjoin_a_pow_p_eq (s : ℕ) (a : E) : F⟮a ^ p ^ s⟯ = F⟮a⟯ := by
-  have ha : a ∈ F⟮a⟯ := IntermediateField.mem_adjoin_simple_self F a
-  have hap : a ^ p ^ s ∈ F⟮a⟯ := pow_mem ha (p ^ s)
-  let L := F⟮a ^ p ^ s⟯
-  /- The extension `L = F⟮a ^ p ^ s⟯ ⊆ F⟮a⟯ ≅ L⟮a⟯` is purely inseparable (and separable)
-    so `L⟮a⟯ = L`. -/
-  haveI : IsPurelyInseparable L L⟮a⟯ :=
-    (IntermediateField.isPurelyInseparable_adjoin_simple_iff_pow_mem L E p).mpr
-      ⟨s, (algebraMap L E).coe_range ▸
-        IntermediateField.algebraMap_range_mem_iff.mpr <|
-        IntermediateField.mem_adjoin_simple_self F (a ^ p ^ s)⟩
-  have haL : a ∈ L :=
-    IntermediateField.algebraMap_range_mem_iff.mp <|
-      IntermediateField.mem_bot.mp <|
-      IntermediateField.adjoin_simple_eq_bot_iff.mp <|
-      L⟮a⟯.eq_bot_of_isPurelyInseparable_of_isSeparable
-  exact LE.le.antisymm
-    (IntermediateField.adjoin_simple_le_iff.mpr hap)
-    (IntermediateField.adjoin_simple_le_iff.mpr haL)
-
-variable [ExpChar E p]
 
 /-- For a separable extension `F ⊆ E` of characteristic `p > 0`,
     the minimal polynomial of `a ^ p ^ s` is the minimal polynomial of `a` mapped via `(⬝ ^ p ^ s)`. -/
@@ -102,7 +78,8 @@ lemma minpoly_map_frobenius (s : ℕ) (a : E) :
     calc μ₂.natDegree
       _ = μ.natDegree := μ.natDegree_map_eq_of_injective (iterateFrobenius F p s).injective
       _ = Module.finrank F F⟮a⟯ := (IntermediateField.adjoin.finrank hai).symm
-      _ = Module.finrank F F⟮a ^ p ^ s⟯ := by rw [adjoin_a_pow_p_eq F p s a]
+      _ = Module.finrank F F⟮a ^ p ^ s⟯ := by
+        rw [IntermediateField.adjoin_simple_eq_adjoin_pow_expChar_pow_of_isSeparable' F E a p s]
       _ = μ₁.natDegree := IntermediateField.adjoin.finrank hapi
   /- one divides the other -/
   have hdvd : μ₁ ∣ μ₂ := minpoly.dvd F (a ^ p ^ s) hμ₂aeval.symm
@@ -116,8 +93,10 @@ variable [FiniteDimensional F E]
 lemma trace_frob_zero (s : ℕ) (a : E) :
     Algebra.trace F E a ≠ 0 → Algebra.trace F E (a ^ p ^ s) ≠ 0 :=
   fun h ↦
-    let ⟨hn, hc⟩ := mul_ne_zero_iff.mp (trace_eq_finrank_mul_minpoly_nextCoeff F a ▸ h)
-    trace_eq_finrank_mul_minpoly_nextCoeff F (a ^ p ^ s) ▸ adjoin_a_pow_p_eq F p s a ▸
+    let ⟨hn, hc⟩ := mul_ne_zero_iff.mp
+      (IntermediateField.trace_eq_finrank_mul_minpoly_nextCoeff F a ▸ h)
+    IntermediateField.trace_eq_finrank_mul_minpoly_nextCoeff F (a ^ p ^ s) ▸
+      IntermediateField.adjoin_simple_eq_adjoin_pow_expChar_pow_of_isSeparable' F E a p s ▸
       mul_ne_zero_iff.mpr ⟨hn, neg_ne_zero.mpr <|
         iterateFrobenius_def (R := E) p .. ▸
         minpoly_map_frobenius F p s a ▸
@@ -256,7 +235,8 @@ theorem notLocallyGenerated_KK_if_findim [FiniteDimensional F K₁] [FiniteDimen
       IntermediateField.adjoin.finrank (IsIntegral.of_finite F β₂) ▸
       hα ▸
       IntermediateField.adjoin.finrank (IsIntegral.of_finite F β₁)
-    rw [trace_eq_finrank_mul_minpoly_nextCoeff F β₁, trace_eq_finrank_mul_minpoly_nextCoeff F β₂,
+    rw [IntermediateField.trace_eq_finrank_mul_minpoly_nextCoeff F β₁,
+      IntermediateField.trace_eq_finrank_mul_minpoly_nextCoeff F β₂,
       show a₁ = (a₁' : F) by rfl,
       show a₂ = (a₂' : F) by rfl,
       ← mul_assoc, ← mul_assoc,
