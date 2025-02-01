@@ -93,9 +93,8 @@ variable [FiniteDimensional F E]
 lemma trace_frob_zero (s : ℕ) (a : E) :
     Algebra.trace F E a ≠ 0 → Algebra.trace F E (a ^ p ^ s) ≠ 0 :=
   fun h ↦
-    let ⟨hn, hc⟩ := mul_ne_zero_iff.mp
-      (IntermediateField.trace_eq_finrank_mul_minpoly_nextCoeff F a ▸ h)
-    IntermediateField.trace_eq_finrank_mul_minpoly_nextCoeff F (a ^ p ^ s) ▸
+    let ⟨hn, hc⟩ := mul_ne_zero_iff.mp (trace_eq_finrank_mul_minpoly_nextCoeff F a ▸ h)
+    trace_eq_finrank_mul_minpoly_nextCoeff F (a ^ p ^ s) ▸
       IntermediateField.adjoin_simple_eq_adjoin_pow_expChar_pow_of_isSeparable' F E a p s ▸
       mul_ne_zero_iff.mpr ⟨hn, neg_ne_zero.mpr <|
         iterateFrobenius_def (R := E) p .. ▸
@@ -235,8 +234,7 @@ theorem notLocallyGenerated_KK_if_findim [FiniteDimensional F K₁] [FiniteDimen
       IntermediateField.adjoin.finrank (IsIntegral.of_finite F β₂) ▸
       hα ▸
       IntermediateField.adjoin.finrank (IsIntegral.of_finite F β₁)
-    rw [IntermediateField.trace_eq_finrank_mul_minpoly_nextCoeff F β₁,
-      IntermediateField.trace_eq_finrank_mul_minpoly_nextCoeff F β₂,
+    rw [trace_eq_finrank_mul_minpoly_nextCoeff F β₁, trace_eq_finrank_mul_minpoly_nextCoeff F β₂,
       show a₁ = (a₁' : F) by rfl,
       show a₂ = (a₂' : F) by rfl,
       ← mul_assoc, ← mul_assoc,

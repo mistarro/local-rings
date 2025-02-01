@@ -79,11 +79,10 @@ theorem isLocalElement_integral {a : A} (hi : IsIntegral F a) (hl : isLocalEleme
     ∃ B : Subalgebra F A, IsLocalRing B ∧ FiniteDimensional F B ∧ a ∈ B :=
   let B := Algebra.adjoin F {a}
   haveI hfd := Algebra.finite_adjoin_simple_of_isIntegral hi
-  have hi (b : B) := IsIntegral.of_finite F b
+  have hu (b : B) := IsArtinianRing.isUnit_of_isIntegral_of_nonZeroDivisor (IsIntegral.of_finite F b)
   let ⟨_, ⟨_, ha⟩⟩ := hl
-  ⟨B, ⟨.of_subring' (Algebra.adjoin_le (Set.singleton_subset_iff.mpr ha))
-    fun b ↦ (hi b).isUnit_of_nonzerodivisor, hfd,
-    Algebra.self_mem_adjoin_singleton F a⟩⟩
+  ⟨B, ⟨.of_subring' (Algebra.adjoin_le (Set.singleton_subset_iff.mpr ha)) fun b ↦ hu b,
+    hfd, Algebra.self_mem_adjoin_singleton F a⟩⟩
 
 variable (F A) in
 /-- Set of all local elements of an `F`-algebra `A`. -/
@@ -170,8 +169,8 @@ theorem isLocalAlgebra_if_isLocallyGenerated {F : Type u} {A : Type v}
   by_contra hNonLocalA
   let ⟨K₁, K₂, fK₁, fK₂, f', hf'⟩ := nonLocalProj hNonLocalA
   /- introduce compatible `F`-algebra structures -/
-  let algK₁ : Algebra F K₁ := .of_algebra_of_ringHom F <| (RingHom.fst K₁ K₂).comp f'
-  let algK₂ : Algebra F K₂ := .of_algebra_of_ringHom F <| (RingHom.snd K₁ K₂).comp f'
+  let algK₁ : Algebra F K₁ := RingHom.fst K₁ K₂ |>.comp f' |>.comp (algebraMap F A) |>.toAlgebra
+  let algK₂ : Algebra F K₂ := RingHom.snd K₁ K₂ |>.comp f' |>.comp (algebraMap F A) |>.toAlgebra
   /- promote `f'` to an `F`-algebra homomorphism -/
   let f : A →ₐ[F] (K₁ × K₂) := ⟨f', fun _ ↦ rfl⟩
   have hf : Function.Surjective f := hf'
