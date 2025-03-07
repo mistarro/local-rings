@@ -16,15 +16,10 @@ import Mathlib.RingTheory.Artinian.Ring
 import Mathlib.RingTheory.IntegralClosure.Algebra.Basic
 import Mathlib.RingTheory.Nilpotent.Defs
 import LocalRings.Basic
-import LocalRings.Utils.PurelyInseparable
+import LocalRings.Utils.NormalizedTrace
 
 /-!
 # Results for integral (algebraic) algebras
-
-## Main definitions
-
-* `absoluteTrace`: a non-trivial linear map `algebraicClosure F →ₗ[F] F`
-  in characteristic `0`.
 
 ## Main results
 
@@ -33,130 +28,6 @@ import LocalRings.Utils.PurelyInseparable
 -/
 
 section Integral
-
-/- Accepted in Mathlib4 in `Mathlib.FieldTheory.NormalizedTrace`. -/
-section Trace
-
-variable (F K : Type*) [Field F] [Field K] [Algebra F K]
-
-open scoped IntermediateField /- `F⟮a⟯` notation for simple field adjoin -/
-
-/-- Absolute trace function from an algebraic extension `K` to the base field `F`. -/
-noncomputable def absoluteTrace' : K → F :=
-  fun a ↦ Algebra.trace F F⟮a⟯ (IntermediateField.AdjoinSimple.gen F a) /
-    Module.finrank F F⟮a⟯
-
-variable {E : Type*} [Field E] [Algebra F E]
-
-section FiniteDimensional
-
-variable [CharZero F] [FiniteDimensional F E]
-
-/-- The absolute trace from a finite-dimensional extension `E` of `F` to `F`
-    is the trace map scaled by `[E : F]`.
-    This version accepts an argument from `E`. -/
-lemma absoluteTrace_eq_findim (a : E) :
-    absoluteTrace' F E a = Algebra.trace F E a / Module.finrank F E := by
-  have h := (Nat.cast_ne_zero (R := F)).mpr <|
-    Nat.pos_iff_ne_zero.mp <| Module.finrank_pos (R := F⟮a⟯) (M := E)
-  rw [trace_eq_trace_adjoin F a, ← Module.finrank_mul_finrank F F⟮a⟯ E,
-    nsmul_eq_mul, Nat.cast_mul,
-    mul_comm, mul_div_mul_right _ _ h]
-  rfl
-
-end FiniteDimensional
-
-/-- The absolute trace transfers via (injective) maps. -/
-lemma absoluteTrace_map_eq (f : E →ₐ[F] K) (a : E) :
-    absoluteTrace' F K (f a) = absoluteTrace' F E a := by
-  have he := Set.image_singleton ▸ IntermediateField.adjoin_map F {a} f
-  let e := (F⟮a⟯.equivMap f).trans (IntermediateField.equivOfEq he)
-  rw [absoluteTrace', absoluteTrace',
-    ← LinearEquiv.finrank_eq e.toLinearEquiv,
-    div_eq_mul_inv, div_eq_mul_inv]
-  exact congrArg (fun x : F ↦ x * _) <|
-    Algebra.trace_eq_of_algEquiv e (IntermediateField.AdjoinSimple.gen F a)
-
-/-- The absolute trace transfers via restriction to a subextension. -/
-lemma absoluteTrace_map_eq' {E : IntermediateField F K} (a : E) :
-    absoluteTrace' F K a = absoluteTrace' F E a :=
-  absoluteTrace_map_eq F K E.val a
-
-variable [CharZero F]
-
-variable {F} in
-/-- The absolute trace map `absoluteTrace' F F` is identity. -/
-theorem absoluteTrace_scalar (a : F) : absoluteTrace' F F a = a := by
-  rw [absoluteTrace_eq_findim F a, Module.finrank_self F,
-    Nat.cast_one, div_one, Algebra.trace_self_apply]
-
-/-- The absolute trace map is a left inverse of the algebra map. -/
-theorem absoluteTrace_algebraMap (a : F) :
-    absoluteTrace' F K (algebraMap F K a) = a :=
-  (Algebra.ofId_apply K a ▸
-    absoluteTrace_map_eq F K (Algebra.ofId F K) a).trans (absoluteTrace_scalar a)
-
-
-variable [Algebra.IsIntegral F K]
-
-/-- The absolute trace is additive. -/
-theorem absoluteTrace_add (a b : K) :
-    absoluteTrace' F K (a + b) = absoluteTrace' F K a + absoluteTrace' F K b := by
-  let E := F⟮a⟯ ⊔ F⟮b⟯ /- `let E := F⟮a, b⟯` causes more problems -/
-  haveI : FiniteDimensional F F⟮a⟯ :=
-    IntermediateField.adjoin.finiteDimensional (Algebra.IsIntegral.isIntegral a)
-  haveI : FiniteDimensional F F⟮b⟯ :=
-    IntermediateField.adjoin.finiteDimensional (Algebra.IsIntegral.isIntegral b)
-  haveI : FiniteDimensional F E :=
-    IntermediateField.finiteDimensional_sup F⟮a⟯ F⟮b⟯
-  have ha : a ∈ E := (le_sup_left : F⟮a⟯ ≤ E) <|
-    IntermediateField.subset_adjoin F {a} (Set.mem_singleton a)
-  have hb : b ∈ E := (le_sup_right : F⟮b⟯ ≤ E) <|
-    IntermediateField.subset_adjoin F {b} (Set.mem_singleton b)
-  have hab : a + b ∈ E := IntermediateField.add_mem E ha hb
-  let a' : E := ⟨a, ha⟩
-  let b' : E := ⟨b, hb⟩
-  let ab' : E := ⟨a + b, hab⟩
-  rw [absoluteTrace_map_eq' F K a',
-    absoluteTrace_map_eq' F K b',
-    absoluteTrace_map_eq' F K ab',
-    absoluteTrace_eq_findim F a',
-    absoluteTrace_eq_findim F b',
-    absoluteTrace_eq_findim F ab',
-    ← add_div, ← map_add]
-  rfl
-
-/-- The absolute trace commutes with scalar multiplication. -/
-theorem absoluteTrace_smul (m : F) (a : K) :
-    absoluteTrace' F K (m • a) = m • absoluteTrace' F K a := by
-  let E := F⟮a⟯
-  haveI : FiniteDimensional F F⟮a⟯ :=
-    IntermediateField.adjoin.finiteDimensional (Algebra.IsIntegral.isIntegral a)
-  have ha : a ∈ E := IntermediateField.subset_adjoin F {a}
-    (Set.mem_singleton a)
-  have hma := IntermediateField.smul_mem E ha (x := m)
-  let a' : E := ⟨a, ha⟩
-  let ma' : E := ⟨m • a, hma⟩
-  rw [absoluteTrace_map_eq' F K a',
-    absoluteTrace_map_eq' F K ma',
-    absoluteTrace_eq_findim F a',
-    absoluteTrace_eq_findim F ma',
-    ← smul_div_assoc, ← map_smul]
-  rfl
-
-/-- Absolute trace function from an algebraic extension `K` to the base field `F`,
-    as an `F`-linear map. -/
-noncomputable def absoluteTrace : K →ₗ[F] F where
-  toFun := absoluteTrace' F K
-  map_add' := absoluteTrace_add F K
-  map_smul' := absoluteTrace_smul F K
-
-/-- Absolute trace map is non-trivial. -/
-theorem nontrivial_absoluteTrace : absoluteTrace F K ≠ 0 := by
-  simp [DFunLike.ne_iff, absoluteTrace]
-  exact ⟨1, (map_one (algebraMap F K) ▸ absoluteTrace_algebraMap F K 1) ▸ one_ne_zero⟩
-
-end Trace
 
 variable (F A K₁ K₂ : Type*)
 variable [Field F] [CommRing A] [Algebra F A]
@@ -176,12 +47,13 @@ theorem notLocallyGenerated_KK_if_integral :
   haveI : Algebra.IsIntegral F K₂ := intK₂.1
   haveI : CharZero F := intK₁.2
   let T : K₁ × K₂ →ₗ[F] F :=
-    absoluteTrace F K₁ ∘ₗ LinearMap.fst F K₁ K₂ - absoluteTrace F K₂ ∘ₗ LinearMap.snd F K₁ K₂
+    Algebra.normalizedTrace F K₁ ∘ₗ LinearMap.fst F K₁ K₂ -
+      Algebra.normalizedTrace F K₂ ∘ₗ LinearMap.snd F K₁ K₂
   let U : Subspace F (K₁ × K₂) := LinearMap.ker T
   /- Show `T ≠ 0` (equivalent to `U ≠ K₁ × K₂`). -/
   have hU_ne_top : U ≠ ⊤ := by
     apply (not_congr <| LinearMap.ker_eq_top).mpr
-    have h := nontrivial_absoluteTrace F K₁
+    have h := Algebra.normalizedTrace_ne_zero F K₁
     simp [DFunLike.ne_iff] at h ⊢
     obtain ⟨x, hx⟩ := h
     use x, 0
@@ -192,8 +64,8 @@ theorem notLocallyGenerated_KK_if_integral :
     have hα₁_int := Algebra.isIntegral_def.mp ‹_› α.1
     have hα₂_int := Algebra.isIntegral_def.mp ‹_› α.2
     have hα_minpoly := local_minpoly_eq (hα₁_int.pair hα₂_int) hα_loc
-    simp [U, T, sub_eq_zero, absoluteTrace, absoluteTrace']
-    exact congrArg₂ (fun (x : ℕ) (y : F) ↦ y / x)
+    simp [U, T, sub_eq_zero, Algebra.normalizedTrace_def]
+    exact congrArg₂ (fun (x : ℕ) (y : F) ↦ (x : F)⁻¹ * y)
       /- finrank = finrank -/
       (IntermediateField.adjoin.finrank hα₂_int ▸
         hα_minpoly ▸
