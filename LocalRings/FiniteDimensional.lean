@@ -22,14 +22,13 @@ import LocalRings.Utils.IntermediateField
 import LocalRings.Utils.PurelyInseparable
 import LocalRings.Utils.Trace
 
-
 /-!
 # Results for finite-dimensional algebras
 
 ## Main results
 
 * `isLocalRing_if_isLocallyGenerated_findim`: a finite-dimensional algebra is local
-    if it is locally generated.
+  if it is locally generated.
 -/
 
 namespace LinearMap
@@ -41,9 +40,9 @@ end LinearMap
 variable (F : Type*) [Field F] {E : Type*} [Field E] [Algebra F E]
 variable (p : ℕ) [ExpChar F p]
 
-lemma interateFrobenius_algebraMap_comm [ExpChar E p] (s : ℕ) :
+lemma interateFrobenius_algebraMap_comm (p : ℕ) [ExpChar F p] [ExpChar E p] (s : ℕ) :
     (algebraMap F E).comp (iterateFrobenius F p s) =
-      (iterateFrobenius E p s).comp (algebraMap F E) :=
+    (iterateFrobenius E p s).comp (algebraMap F E) :=
   RingHom.ext (fun x ↦
     ((algebraMap F E).comp_apply (iterateFrobenius F p s) x).trans <|
     (congrArg (algebraMap F E) (iterateFrobenius_def p s x)).trans <|
@@ -108,16 +107,14 @@ variable (K : Type*) [Field K] [Algebra E K] [Algebra F K] [IsScalarTower F E K]
 variable (E) in
 /-- In characteristic `p > 0`, composition of the trace map for separable part and
     `iRed` for purely inseparable one is non-trivial. -/
-lemma nontrivial_iRed_frob_trace (s : ℕ) (σ : F →+* F)
-    [RingHomCompTriple (iterateFrobenius F p (PurelyInseparable.exponent E K p)) (iterateFrobenius F p s) σ] :
-    (Algebra.trace F E).comp (PurelyInseparable.iRed_frobₛₗ F E K p s σ) ≠ 0 := by
+lemma nontrivial_iteratedFrobenius_frob_trace {s : ℕ} (hs : IsPurelyInseparable.exponent E K ≤ s) :
+    (Algebra.trace F E).comp (IsPurelyInseparable.iterateFrobeniusₛₗ F E K p hs) ≠ 0 := by
+  haveI : ExpChar E p := expChar_of_injective_ringHom (algebraMap F E).injective p
   simp [DFunLike.ne_iff]
-  let r := PurelyInseparable.exponent E K p + s
   /- Trace is surjective, so there is `a : E` with `Algebra.trace F E a = 1` -/
   obtain ⟨a, ha⟩ := Algebra.trace_surjective F E 1
-  replace ha : Algebra.trace F E (a ^ p ^ r) ≠ 0 :=
-    trace_frob_zero F p r a (ha ▸ one_ne_zero)
-  exact ⟨algebraMap E K a, PurelyInseparable.iRed_frobₛₗ_algebraMap_mid F E K p s a σ ▸ ha⟩
+  replace ha : Algebra.trace F E (a ^ p ^ s) ≠ 0 := trace_frob_zero F p s a (ha ▸ one_ne_zero)
+  exact ⟨algebraMap E K a, IsPurelyInseparable.iterateFrobeniusₛₗ_algebraMap_bot F E K p hs a ▸ ha⟩
 
 section FiniteDimensional
 
@@ -126,8 +123,7 @@ variable [Field F] [CommRing A] [Algebra F A]
 variable [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂]
 
 /- Auxiliary lemma to workaround problems with typeclass search. -/
-lemma finrank_equality_aux
-    {E₁ : IntermediateField F K₁} {E₂ : IntermediateField F K₂}
+lemma finrank_equality_aux {E₁ : IntermediateField F K₁} {E₂ : IntermediateField F K₂}
     (h : Module.finrank F E₁ = Module.finrank F E₂) :
     Module.finrank E₁ K₁ * Module.finrank F K₂ =
     Module.finrank E₂ K₂ * Module.finrank F K₁:= by
@@ -148,14 +144,14 @@ theorem notLocallyGenerated_KK_if_findim [FiniteDimensional F K₁] [FiniteDimen
   let E₂ := separableClosure F K₂
   haveI : IsPurelyInseparable E₁ K₁ := separableClosure.isPurelyInseparable F K₁
   haveI : IsPurelyInseparable E₂ K₂ := separableClosure.isPurelyInseparable F K₂
+  haveI : ExpChar E₁ p := expChar_of_injective_ringHom (algebraMap F E₁).injective p
+  haveI : ExpChar E₂ p := expChar_of_injective_ringHom (algebraMap F E₂).injective p
   /- Purely inseparable part. -/
-  let r₁ : ℕ := PurelyInseparable.exponent E₁ K₁ p
-  let r₂ : ℕ := PurelyInseparable.exponent E₂ K₂ p
+  let r₁ : ℕ := IsPurelyInseparable.exponent E₁ K₁
+  let r₂ : ℕ := IsPurelyInseparable.exponent E₂ K₂
   let r := max r₁ r₂
-  let s₁ : ℕ := r - r₁
-  let s₂ : ℕ := r - r₂
-  have hrs₁ : r₁ + s₁ = r := by simp only [s₁, Nat.add_sub_cancel' (le_max_left r₁ r₂)]
-  have hrs₂ : r₂ + s₂ = r := by simp only [s₂, Nat.add_sub_cancel' (le_max_right r₁ r₂)]
+  have hr₁ := le_max_left r₁ r₂
+  have hr₂ := le_max_right r₁ r₂
   /- Separable part. -/
   let b₁ := Module.finrank F E₁
   let b₂ := Module.finrank F E₂
@@ -179,29 +175,23 @@ theorem notLocallyGenerated_KK_if_findim [FiniteDimensional F K₁] [FiniteDimen
       rw [hc] at hprime
       contradiction
   /- Define the semilinear map `T : K₁ × K₂ →ₛₗ[σ] F`. -/
-  let σ := iterateFrobenius F p r
-  haveI := RingHomCompTriple.iterateFrobenius F p hrs₁
-  haveI := RingHomCompTriple.iterateFrobenius F p hrs₂
-  let T₁ := Algebra.trace F E₁ ∘ₛₗ PurelyInseparable.iRed_frobₛₗ F E₁ K₁ p s₁ σ ∘ₛₗ LinearMap.fst F K₁ K₂
-  let T₂ := Algebra.trace F E₂ ∘ₛₗ PurelyInseparable.iRed_frobₛₗ F E₂ K₂ p s₂ σ ∘ₛₗ LinearMap.snd F K₁ K₂
-  -- without `∘ₛₗ` notation:
-  -- let T₁ := ((Algebra.trace F E₁).comp (PurelyInseparable.iRed_frobₛₗ F E₁ K₁ p s₁ σ)).comp (LinearMap.fst F K₁ K₂)
-  -- let T₂ := ((Algebra.trace F E₂).comp (PurelyInseparable.iRed_frobₛₗ F E₂ K₂ p s₂ σ)).comp (LinearMap.snd F K₁ K₂)
-  let T : K₁ × K₂ →ₛₗ[σ] F := a₂ • T₁ - a₁ • T₂
+  let T₁ := Algebra.trace F E₁ ∘ₛₗ IsPurelyInseparable.iterateFrobeniusₛₗ F E₁ K₁ p hr₁ ∘ₛₗ LinearMap.fst F K₁ K₂
+  let T₂ := Algebra.trace F E₂ ∘ₛₗ IsPurelyInseparable.iterateFrobeniusₛₗ F E₂ K₂ p hr₂ ∘ₛₗ LinearMap.snd F K₁ K₂
+  let T : K₁ × K₂ →ₛₗ[_] F := a₂ • T₁ - a₁ • T₂
   let U : Subspace F (K₁ × K₂) := LinearMap.ker T
   /- Show `T ≠ 0` (equivalent to `U ≠ K₁ × K₂`). -/
   have hU_ne_top : U ≠ ⊤ := by
     apply (not_congr <| LinearMap.ker_eq_top).mpr
     cases a_nonzero with
     | inl ha₁ =>
-        have h := nontrivial_iRed_frob_trace F E₂ p K₂ s₂ σ
+        have h := nontrivial_iteratedFrobenius_frob_trace F E₂ p K₂ hr₂
         simp [T₂, DFunLike.ne_iff] at h ⊢
         obtain ⟨x, hx⟩ := h
         use 0, x
         simp [T, T₁, T₂]
         exact ⟨ha₁, hx⟩
     | inr ha₂ =>
-        have h := nontrivial_iRed_frob_trace F E₁ p K₁ s₁ σ
+        have h := nontrivial_iteratedFrobenius_frob_trace F E₁ p K₁ hr₁
         simp [T₁, DFunLike.ne_iff] at h ⊢
         obtain ⟨x, hx⟩ := h
         use x, 0
@@ -211,25 +201,20 @@ theorem notLocallyGenerated_KK_if_findim [FiniteDimensional F K₁] [FiniteDimen
   have hT2 : localElements F (K₁ × K₂) ⊆ U := by
     intro ⟨α₁, α₂⟩ hα
     simp [U, T, T₁, T₂, sub_eq_zero]
-    set β₁ : E₁ := PurelyInseparable.iRed_frobₛₗ F E₁ K₁ p s₁ σ α₁
-    set β₂ : E₂ := PurelyInseparable.iRed_frobₛₗ F E₂ K₂ p s₂ σ α₂
+    have hβ₁ := IsPurelyInseparable.iterateFrobeniusₛₗ_algebraMap_top F E₁ K₁ p hr₁ α₁
+    have hβ₂ := IsPurelyInseparable.iterateFrobeniusₛₗ_algebraMap_top F E₂ K₂ p hr₂ α₂
+    set β₁ : E₁ := IsPurelyInseparable.iterateFrobeniusₛₗ F E₁ K₁ p hr₁ α₁
+    set β₂ : E₂ := IsPurelyInseparable.iterateFrobeniusₛₗ F E₂ K₂ p hr₂ α₂
     /- Goal is now `a₂ * (Algebra.trace F E₁ β₁) = a₁ * (Algebra.trace F E₂ β₂)`. -/
     /- If `α` is local then so is `α ^ p ^ r`. -/
     replace hα := isLocalElement_pow hα (p ^ r)
-    simp at hα
     /- Components of `α ^ p ^ r` have the same minimal polynomial. -/
     replace hα := local_minpoly_eq (IsIntegral.of_finite F (α₁ ^ p ^ r, α₂ ^ p ^ r)) hα
     /- Rewrite using the fact that `β₁` and `β₂` have the same minimal polynomial. -/
-    rw [
-      show α₁ ^ p ^ r = algebraMap E₁ K₁ β₁ by
-        rw [← hrs₁]
-        exact (PurelyInseparable.iRed_frobₛₗ_algebraMap_top F E₁ K₁ p s₁ α₁ σ).symm,
-      show α₂ ^ p ^ r = algebraMap E₂ K₂ β₂ by
-        rw [← hrs₂]
-        exact (PurelyInseparable.iRed_frobₛₗ_algebraMap_top F E₂ K₂ p s₂ α₂ σ).symm,
+    rw [← hβ₁, ← hβ₂,
       minpoly.algebraMap_eq (algebraMap E₁ K₁).injective,
       minpoly.algebraMap_eq (algebraMap E₂ K₂).injective] at hα
-    /- Extensions `F⟮β₁⟯` and `F⟮β₂⟯` have equal degrees over `F`.  -/
+    /- Extensions `F⟮β₁⟯` and `F⟮β₂⟯` have equal degrees over `F`. -/
     have h_finrank_eq :=
       IntermediateField.adjoin.finrank (IsIntegral.of_finite F β₂) ▸
       hα ▸

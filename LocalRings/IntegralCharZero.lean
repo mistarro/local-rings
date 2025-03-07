@@ -34,11 +34,12 @@ import LocalRings.Utils.Trace
 ## Main results
 
 * `isLocalRing_if_isLocallyGenerated_integral`: an integral (equivalently algebraic)
-    algebra is local if it is locally generated.
+  algebra is local if it is locally generated.
 -/
 
 section Integral
 
+/- Accepted in Mathlib4 in `Mathlib.FieldTheory.NormalizedTrace`. -/
 section Trace
 
 variable (F K : Type*) [Field F] [Field K] [Algebra F K]
@@ -67,12 +68,6 @@ lemma absoluteTrace_eq_findim (a : E) :
     nsmul_eq_mul, Nat.cast_mul,
     mul_comm, mul_div_mul_right _ _ h]
   rfl
-
-/-- The absolute trace from a finite-dimensional extension `E` of `F` to `F`
-    is the trace map scaled by `[E : F]`. -/
-lemma absoluteTrace_eq_findim' :
-    absoluteTrace' F E = Algebra.trace F E / Module.finrank F E :=
-  funext (absoluteTrace_eq_findim F)
 
 end FiniteDimensional
 

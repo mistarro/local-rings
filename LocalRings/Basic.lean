@@ -65,7 +65,7 @@ theorem isLocalElement_pow {a : A} (ha : isLocalElement F a) (n : ℕ) : isLocal
   let ⟨B, ⟨hB, haB⟩⟩ := ha
   ⟨B, ⟨hB, B.pow_mem haB n⟩⟩
 
-/-- A homomorphism of rings maps local elements to local elements. -/
+/-- A homomorphism of algebras maps local elements to local elements. -/
 theorem isLocalElement_map [Nontrivial A'] (f : A →ₐ[F] A')
     {a : A} (ha : isLocalElement F a) : isLocalElement F (f a) :=
   let ⟨B, ⟨_, haB⟩⟩ := ha

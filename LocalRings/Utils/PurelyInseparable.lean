@@ -1,253 +1,315 @@
 import Mathlib.FieldTheory.PurelyInseparable
 
-import LocalRings.Utils.Trace
+namespace IsPurelyInseparable
 
-/-!
-# Results for purely inseparable field extensions
+variable (F K L : Type*)
 
-## Main definitions
+/- Accepted in Mathlib4 in `Mathlib.FieldTheory.PurelyInseparable.Exponent`. -/
+section Ring
 
-* `exponent`: the *exponent* of a purely inseparable extension `F ⊆ K`, i.e.,
-    the smallest natural number `e` such that `a ^ p ^ e ∈ F` for all `a ∈ K`.
-* `iRed`: the 'reduction' ring homomorphism `K →+* F` for a purely
-    inseparable extension `F ⊆ K`, such that `algebraMap F K (iRed F K a) = a ^ p ^ e`,
-    where `e = exponent F K`.
-* `iRed_frob`: composition of `iRed` with `iteratedFrobenius` on `F`.
-* `iRedₛₗ`: the map `iRed` as a semilinear map wrt. `iteratedFrobenius` on the scalar field.
-* `iRed_frobₛₗ`: the map `iRed_frob` as a semilinear map wrt. `iteratedFrobenius`
-    on the scalar field.
--/
+variable [CommRing K] [Ring L] [Algebra K L]
 
-namespace PurelyInseparable
+/-- A predicate class on a ring extension saying that there is a natural number `e`
+such that `a ^ ringExpChar K ^ e ∈ K` for all `a ∈ L`. -/
+@[mk_iff]
+class HasExponent : Prop where
+  has_exponent : ∃ e, ∀ a, a ^ ringExpChar K ^ e ∈ (algebraMap K L).range
 
-open scoped IntermediateField
+/-- Version of `hasExponent_iff` using `ExpChar`. -/
+theorem hasExponent_iff' (p : ℕ) [ExpChar K p] :
+    HasExponent K L ↔ ∃ e, ∀ (a : L), a ^ p ^ e ∈ (algebraMap K L).range :=
+  ringExpChar.eq K p ▸ hasExponent_iff K L
 
-variable (F K : Type*) [Field F] [Field K] [Algebra F K] [IsPurelyInseparable F K]
-variable (p : ℕ) [ExpChar F p]
+open scoped Classical in
+/-- The *exponent* of a purely inseparable extension is the smallest
+natural number `e` such that `a ^ ringExpChar K ^ e ∈ K` for all `a ∈ L`. -/
+noncomputable def exponent [HasExponent K L] : ℕ :=
+  Nat.find ‹HasExponent K L›.has_exponent
+
+variable {L}
+
+open Classical in
+theorem exponent_def [HasExponent K L] (a : L) :
+    a ^ ringExpChar K ^ exponent K L ∈ (algebraMap K L).range :=
+  Nat.find_spec ‹HasExponent K L›.has_exponent a
+
+/-- Version of `exponent_def` using `ExpChar`. -/
+theorem exponent_def' [HasExponent K L] (p : ℕ) [ExpChar K p] (a : L) :
+    a ^ p ^ exponent K L ∈ (algebraMap K L).range :=
+  ringExpChar.eq K p ▸ exponent_def K a
 
 variable {K}
 
-/-- For each element `a : K`, there is `n : ℕ` and `y : F` such that
-    `minpoly F a = X ^ p ^ n - y`. -/
-lemma minpoly_eq_X_pow_sub_C' (a : K) :
-    ∃ ny : ℕ × F, minpoly F a = Polynomial.X ^ p ^ ny.1 - Polynomial.C ny.2 := by
-  obtain ⟨n, y, h⟩ := IsPurelyInseparable.minpoly_eq_X_pow_sub_C F p a
-  use ⟨n, y⟩
+open Classical in
+theorem exponent_min [HasExponent K L] {e : ℕ} (h : e < exponent K L) :
+    ∃ a, a ^ ringExpChar K ^ e ∉ (algebraMap K L).range :=
+  not_forall.mp <| Nat.find_min ‹HasExponent K L›.has_exponent h
+
+/-- Version of `exponent_min` using `ExpChar`. -/
+theorem exponent_min' [HasExponent K L] (p : ℕ) [ExpChar K p] {e : ℕ} (h : e < exponent K L) :
+    ∃ a, a ^ p ^ e ∉ (algebraMap K L).range :=
+  ringExpChar.eq K p ▸ exponent_min h
+
+end Ring
+
+/- Accepted in Mathlib4 in `Mathlib.FieldTheory.PurelyInseparable.Exponent`. -/
+section IsDomain
+
+variable [Field K] [Ring L] [IsDomain L] [Algebra K L]
+
+instance [HasExponent K L] : IsPurelyInseparable K L :=
+  let ⟨n, h⟩ := ‹HasExponent K L›.has_exponent
+  (isPurelyInseparable_iff_pow_mem K (ringExpChar K)).mpr fun x ↦ ⟨n, h x⟩
+
+end IsDomain
+
+/- Accepted in Mathlib4 in `Mathlib.FieldTheory.PurelyInseparable.Exponent`. -/
+section Field
+
+open Polynomial
+
+variable [Field K] [Field L] [Algebra K L] [IsPurelyInseparable K L]
+variable {L}
 
 open Classical in
-/-- 'Encoding' of the minimal polynomial of an element `a : K` as the pair `⟨n, y⟩ : ℕ × F` with
-    `minpoly F a = X ^ p ^ n - y`. -/
-noncomputable def minpoly_encode (a : K) : ℕ × F :=
-  Classical.choose (minpoly_eq_X_pow_sub_C' F p a)
+/-- The exponent of an element `a ∈ L` of a purely inseparable field extension `L / K`
+is the smallest natural number `e` such that `a ^ ringExpChar K ^ e ∈ K`. -/
+noncomputable def elemExponent (a : L) : ℕ :=
+  Nat.find <| minpoly_eq_X_pow_sub_C K (ringExpChar K) a
 
-/-- The exponent of an element of a purely inseparable field extension is the smallest
-    natural number `e` such that `a ^ p ^ e ∈ F` for all `a ∈ K`. -/
-noncomputable def elemExponent (a : K) : ℕ := (minpoly_encode F p a).1
+open Classical in
+variable {K} in
+theorem elemExponent_eq_zero_of_mem_range {a : L} (h : a ∈ (algebraMap K L).range) :
+    elemExponent K a = 0 := by
+  apply (Nat.find_eq_zero _).mpr
+  rw [pow_zero, pow_one]
+  obtain ⟨y, hy⟩ := h
+  exact ⟨y, hy ▸ minpoly.eq_X_sub_C L y⟩
 
-noncomputable def elemReduct (a : K) : F := (minpoly_encode F p a).2
+theorem elemExponent_eq_zero_of_charZero (a : L) [CharZero K] :
+    elemExponent K a = 0 :=
+  elemExponent_eq_zero_of_mem_range <| surjective_algebraMap_of_isSeparable K L a
 
-lemma minpoly_encode_def (a : K) :
-    minpoly F a = Polynomial.X ^ p ^ (elemExponent F p a) - Polynomial.C (elemReduct F p a) := by
-  exact Classical.choose_spec (minpoly_eq_X_pow_sub_C' F p a)
+open Classical in
+/-- The element `y` of the base field `K` such that
+`a ^ ringExpChar K ^ elemExponent K a = algebraMap K L y`.
+See `IsPurelyInseparable.algebraMap_elemReduct_eq`. -/
+noncomputable def elemReduct (a : L) : K :=
+  Classical.choose <| Nat.find_spec <| minpoly_eq_X_pow_sub_C K (ringExpChar K) a
 
-/-- The degree of the minimal polynomial of an element `a : K` equals `p ^ (elemExponent F p a)`. -/
-lemma minpoly_encode_natDegree (a : K) :
-    (minpoly F a).natDegree = p ^ (elemExponent F p a) := by
-  rw [minpoly_encode_def F p a, Polynomial.natDegree_sub_C, Polynomial.natDegree_pow,
-    Polynomial.natDegree_X, mul_one]
+open Classical in
+theorem minpoly_eq (a : L) :
+    minpoly K a = X ^ ringExpChar K ^ elemExponent K a - C (elemReduct K a) :=
+  Classical.choose_spec <| Nat.find_spec <| minpoly_eq_X_pow_sub_C K (ringExpChar K) a
 
-lemma minpoly_encode_algebraMap (a : K) : algebraMap F K (elemReduct F p a) = a ^ p ^ (elemExponent F p a) := by
-  have := minpoly_encode_def F p a ▸ minpoly.aeval F a
-  rw [map_sub, Polynomial.aeval_C, map_pow, Polynomial.aeval_X, sub_eq_zero] at this
-  exact this.symm
+open Classical in
+/-- Version of `minpoly_eq` using `ExpChar`. -/
+theorem minpoly_eq' (p : ℕ) [ExpChar K p] (a : L) :
+    minpoly K a = X ^ p ^ elemExponent K a - C (elemReduct K a) :=
+  ringExpChar.eq K p ▸ minpoly_eq K a
 
+/-- The degree of the minimal polynomial of an element `a ∈ L` equals
+`ringExpChar K ^ elemExponent K a`. -/
+theorem minpoly_natDegree_eq (a : L) :
+    (minpoly K a).natDegree = ringExpChar K ^ elemExponent K a := by
+  rw [minpoly_eq K a, natDegree_sub_C, natDegree_pow, natDegree_X, mul_one]
 
-variable (K) in
-/-- A predicate class on a purely inseparable extension saying that there is a natural number
-    `e` such that `a ^ p ^ e ∈ F` for all `a ∈ K`. -/
-def ExponentExists [IsPurelyInseparable F K] [ExpChar F p] : Prop :=
-    ∃ e : ℕ, ∀ a : K, a ^ p ^ e ∈ (algebraMap F K).range
+/-- Version of `minpoly_natDegree_eq` using `ExpChar`. -/
+theorem minpoly_natDegree_eq' (p : ℕ) [ExpChar K p] (a : L) :
+    (minpoly K a).natDegree = p ^ elemExponent K a :=
+  ringExpChar.eq K p ▸ minpoly_natDegree_eq K a
 
-instance exponent_exists_of_finite_dimensional [FiniteDimensional F K] :
-    Fact (ExponentExists F K p) := by
-  rw [fact_iff]
-  rcases ‹ExpChar F p› with _ | ⟨hp⟩
-  · exact ⟨0, fun a ↦
-      IsPurelyInseparable.surjective_algebraMap_of_isSeparable F K (a ^ 1 ^ 0)⟩
-  · let e := Nat.log p (Module.finrank F K)
-    have h_elemexp_bound (a : K) : elemExponent F p a ≤ e :=
-      Nat.le_log_of_pow_le (Nat.Prime.one_lt hp)
-        (minpoly_encode_natDegree F p a ▸ minpoly.natDegree_le a)
-    refine ⟨e, fun a ↦ ⟨(elemReduct F p a) ^ p ^ (e - elemExponent F p a), ?_⟩⟩
-    rw [RingHom.map_pow,
-      minpoly_encode_algebraMap,
-      ← pow_mul, ← pow_add,
+theorem algebraMap_elemReduct_eq (a : L) :
+    algebraMap K L (elemReduct K a) = a ^ ringExpChar K ^ elemExponent K a := by
+  have := minpoly_eq K a ▸ minpoly.aeval K a
+  rwa [map_sub, aeval_C, map_pow, aeval_X, sub_eq_zero, eq_comm] at this
+
+/-- Version of `algebraMap_elemReduct_eq` using `ExpChar`. -/
+theorem algebraMap_elemReduct_eq' (p : ℕ) [ExpChar K p] (a : L) :
+    algebraMap K L (elemReduct K a) = a ^ p ^ elemExponent K a :=
+  ringExpChar.eq K p ▸ algebraMap_elemReduct_eq K a
+
+theorem elemExponent_def (a : L) :
+    a ^ ringExpChar K ^ elemExponent K a ∈ (algebraMap K L).range :=
+  RingHom.mem_range.mpr <| ⟨_, algebraMap_elemReduct_eq K a⟩
+
+/-- Version of `elemExponent_def` using `ExpChar`. -/
+theorem elemExponent_def' (p : ℕ) [ExpChar K p] (a : L) :
+    a ^ p ^ elemExponent K a ∈ (algebraMap K L).range :=
+  ringExpChar.eq K p ▸ elemExponent_def K a
+
+variable {K} in
+theorem elemExponent_le_of_pow_mem {a : L} {n : ℕ}
+    (h : a ^ ringExpChar K ^ n ∈ (algebraMap K L).range) : elemExponent K a ≤ n := by
+  let ⟨p, _⟩ := ExpChar.exists K
+  rcases ‹ExpChar K p› with _ | ⟨hp⟩
+  · exact elemExponent_eq_zero_of_charZero K a ▸ Nat.zero_le _
+  · obtain ⟨y, hy⟩ := RingHom.mem_range.mp <| h
+    let f := X ^ ringExpChar K ^ n - C y
+    have hf₁ : f.aeval a = 0 := by rwa [map_sub, aeval_C, aeval_X_pow, sub_eq_zero, eq_comm]
+    have hf₂ : f.Monic := monic_X_pow_sub_C y <| Nat.pos_iff_ne_zero.mp <| expChar_pow_pos K _ _
+    have hf₃ : f.natDegree = ringExpChar K ^ n := by
+      rw [natDegree_sub_C, natDegree_pow, natDegree_X, mul_one]
+    exact (Nat.pow_le_pow_iff_right <| Nat.Prime.one_lt hp).mp <|
+      ringExpChar.eq K p ▸ hf₃ ▸ minpoly_natDegree_eq K a ▸
+      natDegree_le_natDegree (minpoly.min K a hf₂ hf₁)
+
+variable {K} in
+/-- Version of `elemExponent_le_of_pow_mem` using `ExpChar`. -/
+theorem elemExponent_le_of_pow_mem' (p : ℕ) [ExpChar K p] {a : L} {n : ℕ}
+    (h : a ^ p ^ n ∈ (algebraMap K L).range) : elemExponent K a ≤ n :=
+  elemExponent_le_of_pow_mem (ringExpChar.eq K p ▸ h)
+
+variable {K} in
+theorem elemExponent_min {a : L} {n : ℕ} (h : n < elemExponent K a) :
+    a ^ ringExpChar K ^ n ∉ (algebraMap K L).range :=
+  fun hn ↦ (Nat.not_lt_of_le <| elemExponent_le_of_pow_mem hn) h
+
+/-- Version of `elemExponent_min` using `ExpChar`. -/
+theorem elemExponent_min' (p : ℕ) [ExpChar K p] {a : L} {n : ℕ} (h : n < elemExponent K a) :
+    a ^ p ^ n ∉ (algebraMap K L).range :=
+  ringExpChar.eq K p ▸ elemExponent_min h
+
+/-- An exponent of an element is less or equal than exponent of the extension. -/
+theorem elemExponent_le_exponent [HasExponent K L] (a : L) :
+    elemExponent K a ≤ exponent K L :=
+  elemExponent_le_of_pow_mem <| exponent_def K a
+
+variable {K} in
+instance hasExponent_of_finiteDimensional [IsPurelyInseparable K L] [FiniteDimensional K L] :
+    HasExponent K L := by
+  let ⟨p, _⟩ := ExpChar.exists K
+  rcases ‹ExpChar K p› with _ | ⟨hp⟩
+  · exact ⟨0, fun a ↦ surjective_algebraMap_of_isSeparable K L _⟩
+  · let e := Nat.log (ringExpChar K) (Module.finrank K L)
+    refine ⟨e, fun a ↦ ⟨elemReduct K a ^ ringExpChar K ^ (e - elemExponent K a), ?_⟩⟩
+    have h_elemexp_bound (a : L) : elemExponent K a ≤ e :=
+      Nat.le_log_of_pow_le (Nat.Prime.one_lt <| ringExpChar.eq K p ▸ hp)
+        (minpoly_natDegree_eq K a ▸ minpoly.natDegree_le a)
+    rw [RingHom.map_pow, algebraMap_elemReduct_eq, ← pow_mul, ← pow_add,
       Nat.add_sub_cancel' (h_elemexp_bound a)]
 
-variable [Fact (ExponentExists F K p)]
+end Field
 
-open Classical in
-variable (K) in
-/-- The *exponent* of a purely inseparable extension, i.e., the smallest
-    natural number `e` such that `a ^ p ^ e ∈ F` for all `a ∈ K`. -/
-noncomputable def exponent : ℕ :=
-  Nat.find ‹Fact (ExponentExists F K p)›.out
-
-open Classical in
-lemma exponent_def (a : K) : a ^ p ^ exponent F K p ∈ (algebraMap F K).range :=
-  Nat.find_spec ‹Fact (ExponentExists F K p)›.out a
-
-variable {p} in
-/-- An exponent of an element is less or equal than exponent of the extension. -/
-lemma elemExponent_le_exponent (hp : p.Prime) (a : K) :
-    elemExponent F p a ≤ exponent F K p := by
-  obtain ⟨y, hy⟩ := RingHom.mem_range.mp <| exponent_def F p a
-  let f := Polynomial.X ^ p ^ exponent F K p - Polynomial.C y
-  have hf₁ : Polynomial.aeval a f = 0 := by
-    rw [map_sub, Polynomial.aeval_C, Polynomial.aeval_X_pow, sub_eq_zero]
-    exact hy.symm
-  have hf₂ : f.Monic := Polynomial.monic_X_pow_sub_C y
-    (Nat.pos_iff_ne_zero.mp (expChar_pow_pos F p _))
-  have hf₃ : f.natDegree = p ^ exponent F K p := by
-    rw [Polynomial.natDegree_sub_C, Polynomial.natDegree_pow, Polynomial.natDegree_X,
-      mul_one]
-  have := hf₃ ▸ minpoly_encode_natDegree F p a ▸
-    Polynomial.natDegree_le_natDegree (minpoly.min F a hf₂ hf₁)
-  exact (Nat.pow_le_pow_iff_right <| Nat.Prime.one_lt hp).mp this
-
-variable (K) in
-/-- Multiplicative reduction function. Defines the canonical ring homomorphism `iRed : K →+* F`.
-    Acts like rising to the power of `p ^ exponent F K p`, see `iRed'_algebraMap`. -/
-noncomputable def iRed' : K → F :=
-  fun a ↦ (elemReduct F p a) ^ p ^ (exponent F K p - elemExponent F p a)
-
-/-- Action of `iRed'` on the top field. -/
-lemma iRed'_algebraMap (a : K) : algebraMap F K (iRed' F K p a) = a ^ p ^ exponent F K p := by
-  rw [iRed', RingHom.map_pow, minpoly_encode_algebraMap, ← pow_mul, ← pow_add]
-  rcases ‹ExpChar F p› with _ | ⟨hp⟩
-  · simp
-  · rw [Nat.add_sub_cancel' (elemExponent_le_exponent F hp a)]
-
-variable (K)
-
-lemma iRed'_map_zero : iRed' F K p 0 = 0 := by
-  apply (algebraMap F K).injective
-  rw [(algebraMap F K).map_zero,
-    iRed'_algebraMap F p (0 : K),
-    zero_pow]
-  exact Nat.pos_iff_ne_zero.mp <|
-    Nat.pos_pow_of_pos (exponent F K p) (expChar_pos F p)
-
-lemma iRed'_map_add (a b : K) : iRed' F K p (a + b) = iRed' F K p a + iRed' F K p b := by
-  have inj := (algebraMap F K).injective
-  apply inj
-  haveI : ExpChar K p := expChar_of_injective_ringHom inj p
-  rw [(algebraMap F K).map_add,
-    iRed'_algebraMap F p a,
-    iRed'_algebraMap F p b,
-    iRed'_algebraMap F p (a + b),
-    add_pow_expChar_pow a b]
-
-lemma iRed'_map_one : iRed' F K p 1 = 1 := by
-  apply (algebraMap F K).injective
-  rw [(algebraMap F K).map_one,
-    iRed'_algebraMap F p (1 : K),
-    one_pow]
-
-lemma iRed'_map_mul (a b : K) : iRed' F K p (a * b) = iRed' F K p a * iRed' F K p b := by
-  apply (algebraMap F K).injective
-  rw [(algebraMap F K).map_mul,
-    iRed'_algebraMap F p a,
-    iRed'_algebraMap F p b,
-    iRed'_algebraMap F p (a * b),
-    mul_pow]
-
-/-- Inseparable reduction map.
-    It is a ring homomorphism, so in particular it is injective. This, together with
-    `algebraMap F K` (also injective), shows that for a purely inseparable field extension
-    `F ⊆ K`, `F` and `K` have the same cardinality. -/
-noncomputable def iRed : K →+* F :=
-  { toFun := iRed' F K p
-    map_zero' := iRed'_map_zero F K p
-    map_add' := iRed'_map_add F K p
-    map_one' := iRed'_map_one F K p
-    map_mul' := iRed'_map_mul F K p }
-
-/-- Inseparable reduction map composed with iterated Frobenius (as a ring homomorphism). -/
-noncomputable def iRed_frob (s : ℕ) : K →+* F := (iterateFrobenius F p s).comp (iRed F K p)
-
-
-section SemiLinear
+/- PR #22673 -/
+section Frobenius
 
 /-
-  Inseparable reduction map as a semi-linear map wrt the iterated frobenius.
-  The setup is a tower of field extensions `F ⊆ E ⊆ K` with `F ⊆ E` arbitrary
-  and `E ⊆ K` purely inseparable with finite exponent.
- -/
+This section defines the iterated Frobenius map `x ↦ x ^ p ^ n` for purely inseparable
+field extension `L / K` with exponent, with the base field `K` as a codomain, when
+`n ≥ exponent K L`.
+We define it both as a ring homomorphism and a semilinear map over a subfield `F` of `K`.
 
-variable (F E K : Type*) [Field F] [Field E] [Field K]
-  [Algebra F E] [Algebra E K] [Algebra F K] [IsScalarTower F E K]
-variable [IsPurelyInseparable E K]
-variable (p : ℕ) [ExpChar E p]
-variable [Fact (ExponentExists E K p)]
+Implementation note: the API exposes arguments `{n : ℕ} (hn : exponent K L ≤ n)` to define the
+action `x ↦ x ^ p ^ n` instead of just `(n : ℕ)` with action `x ↦ x ^ p ^ (exponent K L + n)`
+to avoid problems with definitional equality when using the semilinear map version.
+-/
 
-/-- Action of `iRed'` on the bottom field. -/
-lemma iRed'_algebraMap_bot (a : F) :
-    iRed' E K p (algebraMap F K a) = (algebraMap F E a) ^ p ^ exponent E K p := by
-  apply (algebraMap E K).injective
-  rw [← map_pow, ← IsScalarTower.algebraMap_apply, map_pow, iRed'_algebraMap]
+variable [Field K] [Field L] [Algebra K L] [HasExponent K L]
+variable (p : ℕ) [ExpChar K p]
 
-/-- Action of `iRed'` on the middle field. -/
-lemma iRed'_algebraMap_mid (a : E) :
-    iRed' E K p (algebraMap E K a) = a ^ p ^ exponent E K p := by
-  apply (algebraMap E K).injective
-  rw [map_pow, iRed'_algebraMap]
+private noncomputable def iterateFrobeniusAux (n : ℕ) : L → K :=
+  fun a ↦ elemReduct K a ^ p ^ (n - elemExponent K a)
 
+variable {L} in
+/-- Action of `iterateFrobeniusAux` on the top field. -/
+private theorem iterateFrobeniusAux_algebraMap {n : ℕ} (hn : exponent K L ≤ n) (a : L) :
+    algebraMap K L (iterateFrobeniusAux K L p n a) = a ^ p ^ n := by
+  rw [iterateFrobeniusAux, RingHom.map_pow, algebraMap_elemReduct_eq' K p, ← pow_mul, ← pow_add,
+    Nat.add_sub_cancel' <| (elemExponent_le_exponent K a).trans hn]
+
+section RingHom
+
+/-- Iterated Frobenius map (ring homomorphism) for purely inseparable field extension with exponent.
+If `n ≥ exponent K L`, it acts like `x ↦ x ^ p ^ n` but the codomain is the base field `K`. -/
+noncomputable def iterateFrobenius {n : ℕ} (hn : exponent K L ≤ n) : L →+* K where
+  toFun := iterateFrobeniusAux K L p n
+  map_zero' := by
+    apply (algebraMap K L).injective
+    rw [(algebraMap K L).map_zero,
+      iterateFrobeniusAux_algebraMap K p hn 0,
+      zero_pow]
+    exact Nat.pos_iff_ne_zero.mp <| expChar_pow_pos K p n
+  map_add' a b := by
+    have inj := (algebraMap K L).injective
+    have : ExpChar L p := expChar_of_injective_ringHom inj p
+    apply inj
+    rw [(algebraMap K L).map_add,
+      iterateFrobeniusAux_algebraMap K p hn a,
+      iterateFrobeniusAux_algebraMap K p hn b,
+      iterateFrobeniusAux_algebraMap K p hn (a + b),
+      add_pow_expChar_pow a b]
+  map_one' := by
+    apply (algebraMap K L).injective
+    rw [(algebraMap K L).map_one,
+      iterateFrobeniusAux_algebraMap K p hn 1,
+      one_pow]
+  map_mul' a b := by
+    apply (algebraMap K L).injective
+    rw [(algebraMap K L).map_mul,
+      iterateFrobeniusAux_algebraMap K p hn a,
+      iterateFrobeniusAux_algebraMap K p hn b,
+      iterateFrobeniusAux_algebraMap K p hn (a * b),
+      mul_pow]
+
+variable {L} in
+/-- Action of `iterateFrobenius` on the top field. -/
+theorem iterateFrobenius_algebraMap_top {n : ℕ} (hn : exponent K L ≤ n) (a : L) :
+    algebraMap K L (iterateFrobenius K L p hn a) = a ^ p ^ n :=
+  iterateFrobeniusAux_algebraMap K p hn a
+
+variable {K} in
+/-- Action of `iterateFrobenius` on the bottom field. -/
+theorem iterateFrobenius_algebraMap_bot {n : ℕ} (hn : exponent K L ≤ n) (a : K) :
+    iterateFrobenius K L p hn (algebraMap K L a) = a ^ p ^ n := by
+  apply (algebraMap K L).injective
+  rw [map_pow, iterateFrobenius_algebraMap_top K p hn]
+
+end RingHom
+
+section Semilinear
+
+variable [Field F] [Algebra F K] [Algebra F L] [IsScalarTower F K L]
 variable [ExpChar F p]
 
-lemma iRed'_map_smul (r : F) (a : K) :
-    iRed' E K p (r • a) = iterateFrobenius F p (exponent E K p) r • iRed' E K p a := by
-  rw [Algebra.smul_def _ (iRed' E K p a)]
-  apply (algebraMap E K).injective
-  rw [(algebraMap E K).map_mul,
-    ← IsScalarTower.algebraMap_apply,
-    iRed'_algebraMap E p a,
-    iRed'_algebraMap E p (r • a),
-    iterateFrobenius_def,
-    map_pow,
-    Algebra.smul_def,
-    mul_pow]
+/-- Version of `iterateFrobenius` as a semilinear map over a subfield `F` of `K`, wrt the
+iterated Frobenius homomorphism on `F`. -/
+noncomputable def iterateFrobeniusₛₗ {n : ℕ} (hn : exponent K L ≤ n) :
+    L →ₛₗ[_root_.iterateFrobenius F p n] K where
+  __ := iterateFrobenius K L p hn
+  map_smul' r a := by
+    dsimp [iterateFrobenius]
+    rw [Algebra.smul_def _ (iterateFrobeniusAux K L p n a)]
+    apply (algebraMap K L).injective
+    rw [(algebraMap K L).map_mul,
+      ← IsScalarTower.algebraMap_apply,
+      iterateFrobeniusAux_algebraMap K p hn a,
+      iterateFrobeniusAux_algebraMap K p hn (r • a),
+      iterateFrobenius_def,
+      map_pow,
+      Algebra.smul_def,
+      mul_pow]
 
-/-- Inseparable reduction map as a semilinear map over `F` wrt iterated Frobenius map. -/
-noncomputable def iRedₛₗ : K →ₛₗ[iterateFrobenius F p (exponent E K p)] E :=
-  { iRed E K p with
-    map_smul' := iRed'_map_smul F E K p }
+/-- Action of `iterateFrobeniusₛₗ` on the top field. -/
+theorem iterateFrobeniusₛₗ_algebraMap_top {n : ℕ} (hn : exponent K L ≤ n) (a : L) :
+    algebraMap K L (iterateFrobeniusₛₗ F K L p hn a) = a ^ p ^ n := by
+  simpa using iterateFrobeniusAux_algebraMap K p hn a
 
-/-- Returns an instance of `RingHomCompTriple` for iterated Frobenius with a proper out param. -/
-lemma _root_.RingHomCompTriple.iterateFrobenius {m n r : ℕ} (h : m + n = r) :
-    RingHomCompTriple (iterateFrobenius F p m) (iterateFrobenius F p n) (iterateFrobenius F p r) :=
-  { comp_eq := (Nat.add_comm n m ▸ h) ▸ (iterateFrobenius_add F p n m).symm }
+/-- Action of `iterateFrobeniusₛₗ` on the bottom field. -/
+theorem iterateFrobeniusₛₗ_algebraMap_bot {n : ℕ} (hn : exponent K L ≤ n) (a : K) :
+    iterateFrobeniusₛₗ F K L p hn (algebraMap K L a) = a ^ p ^ n := by
+  apply (algebraMap K L).injective
+  rw [map_pow, iterateFrobeniusₛₗ_algebraMap_top F K L p hn]
 
-/-- Inseparable reduction map composed with iterated Frobenius (as a semilinear map wrt. `σ`). -/
-noncomputable def iRed_frobₛₗ (s : ℕ) (σ : F →+* F)
-    [RingHomCompTriple (iterateFrobenius F p (exponent E K p)) (iterateFrobenius F p s) σ] :
-    K →ₛₗ[σ] E :=
-  (LinearMap.iterateFrobenius F E p s).comp (iRedₛₗ F E K p)
+/-- Action of `iterateFrobeniusₛₗ` on the base field. -/
+theorem iterateFrobeniusₛₗ_algebraMap_base {n : ℕ} (hn : exponent K L ≤ n) (a : F) :
+    iterateFrobeniusₛₗ F K L p hn (algebraMap F L a) = (algebraMap F K a) ^ p ^ n := by
+  apply (algebraMap K L).injective
+  rw [← map_pow, ← IsScalarTower.algebraMap_apply, map_pow,
+    iterateFrobeniusₛₗ_algebraMap_top F K L p hn]
 
-/-- The map `iRed_frobₛₗ` acts on the middle field essentially raising to the power of the characteristic. -/
-lemma iRed_frobₛₗ_algebraMap_mid (s : ℕ) (a : E) (σ : F →+* F)
-    [RingHomCompTriple (iterateFrobenius F p (exponent E K p)) (iterateFrobenius F p s) σ] :
-    iRed_frobₛₗ F E K p s σ (algebraMap E K a) = a ^ p ^ (exponent E K p + s) := by
-  simp [iRed_frobₛₗ, iRedₛₗ, iRed]
-  rw [LinearMap.iterateFrobenius_def, iRed'_algebraMap_mid, ← pow_mul, ← pow_add, add_comm]
+end Semilinear
 
-/-- The map `iRed_frobₛₗ` acts on the top field essentially raising to the power of the characteristic. -/
-lemma iRed_frobₛₗ_algebraMap_top (s : ℕ) (a : K) (σ : F →+* F)
-  [RingHomCompTriple (iterateFrobenius F p (exponent E K p)) (iterateFrobenius F p s) σ] :
-    algebraMap E K (iRed_frobₛₗ F E K p s σ a) = a ^ p ^ (exponent E K p + s) := by
-  simp [iRed_frobₛₗ, iRedₛₗ, iRed]
-  rw [LinearMap.iterateFrobenius_def, map_pow, iRed'_algebraMap, ← pow_mul, ← pow_add]
+end Frobenius
 
-end SemiLinear
-
-end PurelyInseparable
+end IsPurelyInseparable
