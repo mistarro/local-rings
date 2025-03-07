@@ -6,14 +6,12 @@ import Mathlib.Algebra.Module.Defs
 import Mathlib.Algebra.Module.LinearMap.Defs
 import Mathlib.Algebra.Module.Submodule.Range
 import Mathlib.Algebra.Ring.Prod
-
 import Mathlib.LinearAlgebra.Span.Basic
-
+import Mathlib.RingTheory.Artinian.Algebra
 import Mathlib.RingTheory.Ideal.Quotient.Operations
-import Mathlib.RingTheory.LocalRing.Basic
+import Mathlib.RingTheory.LocalRing.RingHom.Basic
+import Mathlib.RingTheory.LocalRing.Subring
 import Mathlib.RingTheory.Trace.Basic
-
-import LocalRings.Utils.Ring
 
 /-!
 # Basic results about local elements and local rings.
@@ -114,7 +112,7 @@ lemma local_minpoly_eq {K₁ K₂ : Type*} [Field K₁] [Field K₂] [Algebra F 
   obtain ⟨B, ⟨_, _, ha⟩⟩ := isLocalElement_integral hi hl
   haveI : IsArtinianRing B := isArtinian_of_tower F inferInstance
   haveI : IsReduced B := isReduced_of_injective B.toSubring.subtype (by apply Subtype.coe_injective)
-  letI : Field B := IsArtinianRing.isField_of_isReduced_of_isLocalRing.toField
+  letI : Field B := IsArtinianRing.isField_of_isReduced_of_isLocalRing B |>.toField
   let a' : B := ⟨a, ha⟩
   let f₁ := (AlgHom.fst F K₁ K₂).comp (B.val) /- projection `B →ₐ[F] K₁` -/
   let f₂ := (AlgHom.snd F K₁ K₂).comp (B.val) /- projection `B →ₐ[F] K₂` -/

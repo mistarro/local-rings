@@ -1,4 +1,4 @@
-import Mathlib.FieldTheory.PurelyInseparable
+import Mathlib.FieldTheory.PurelyInseparable.Basic
 
 namespace IsPurelyInseparable
 

@@ -4,23 +4,18 @@ import Mathlib.Algebra.Field.Basic
 import Mathlib.Algebra.Module.Submodule.Ker
 import Mathlib.Algebra.Polynomial.AlgebraMap
 import Mathlib.Algebra.Ring.Hom.Defs
-
 import Mathlib.FieldTheory.IntermediateField.Basic
+import Mathlib.FieldTheory.PurelyInseparable.PerfectClosure
 import Mathlib.FieldTheory.Minpoly.Field
 import Mathlib.FieldTheory.SeparableClosure
-
 import Mathlib.LinearAlgebra.Dimension.Finite
 import Mathlib.LinearAlgebra.Dimension.Finrank
 import Mathlib.LinearAlgebra.Dimension.Free
 import Mathlib.LinearAlgebra.FiniteDimensional.Defs
 import Mathlib.LinearAlgebra.Prod
-
 import Mathlib.RingTheory.IntegralClosure.Algebra.Basic
-
 import LocalRings.Basic
-import LocalRings.Utils.IntermediateField
 import LocalRings.Utils.PurelyInseparable
-import LocalRings.Utils.Trace
 
 /-!
 # Results for finite-dimensional algebras
@@ -170,7 +165,7 @@ theorem notLocallyGenerated_KK_if_findim [FiniteDimensional F K₁] [FiniteDimen
     rcases ‹ExpChar F p› with _ | ⟨hprime⟩
     · simp [a₁, a₂, Nat.cast_eq_zero] at hc
       simp [hc.1, hc.2] at a_coprime
-    · simp only [CharP.cast_eq_zero_iff F p] at hc
+    · simp only [a₁, a₂, CharP.cast_eq_zero_iff F p] at hc
       rw [← Nat.dvd_gcd_iff, a_coprime, Nat.dvd_one] at hc
       rw [hc] at hprime
       contradiction
