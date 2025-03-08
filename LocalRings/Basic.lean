@@ -1,17 +1,8 @@
-import Mathlib.Algebra.Algebra.Hom
-import Mathlib.Algebra.Algebra.Prod
-import Mathlib.Algebra.Algebra.Subalgebra.Basic
-import Mathlib.Algebra.Field.Basic
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.LinearMap.Defs
-import Mathlib.Algebra.Module.Submodule.Range
-import Mathlib.Algebra.Ring.Prod
-import Mathlib.LinearAlgebra.Span.Basic
+import Mathlib.FieldTheory.Minpoly.Field
 import Mathlib.RingTheory.Artinian.Algebra
-import Mathlib.RingTheory.Ideal.Quotient.Operations
+import Mathlib.RingTheory.IntegralClosure.Algebra.Basic
 import Mathlib.RingTheory.LocalRing.RingHom.Basic
 import Mathlib.RingTheory.LocalRing.Subring
-import Mathlib.RingTheory.Trace.Basic
 
 /-!
 # Basic results about local elements and local rings.

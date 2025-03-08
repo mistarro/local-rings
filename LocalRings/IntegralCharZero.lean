@@ -1,20 +1,3 @@
-import Mathlib.Algebra.Algebra.Hom
-import Mathlib.Algebra.Algebra.Prod
-import Mathlib.Algebra.Field.Basic
-import Mathlib.Algebra.Module.Submodule.Ker
-import Mathlib.Algebra.Polynomial.AlgebraMap
-import Mathlib.Algebra.Ring.Hom.Defs
-import Mathlib.FieldTheory.IntermediateField.Basic
-import Mathlib.FieldTheory.Minpoly.Field
-import Mathlib.FieldTheory.SeparableClosure
-import Mathlib.LinearAlgebra.Dimension.Finite
-import Mathlib.LinearAlgebra.Dimension.Finrank
-import Mathlib.LinearAlgebra.Dimension.Free
-import Mathlib.LinearAlgebra.FiniteDimensional.Defs
-import Mathlib.LinearAlgebra.Prod
-import Mathlib.RingTheory.Artinian.Ring
-import Mathlib.RingTheory.IntegralClosure.Algebra.Basic
-import Mathlib.RingTheory.Nilpotent.Defs
 import LocalRings.Basic
 import LocalRings.Utils.NormalizedTrace
 
