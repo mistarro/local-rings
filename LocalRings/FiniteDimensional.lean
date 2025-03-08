@@ -28,7 +28,7 @@ import LocalRings.Utils.PurelyInseparable
 
 namespace LinearMap
 
-@[inherit_doc] infixr:90 " ∘ₛₗ "  => comp
+@[inherit_doc] infixr:90 " ∘ₛₗ " => comp
 
 end LinearMap
 
@@ -82,7 +82,7 @@ lemma minpoly_map_frobenius (s : ℕ) (a : E) :
 
 variable [FiniteDimensional F E]
 
-/-- If trace of `a` is non-zero then trace of `a ^ p ^ s` is non-zero
+/-- If the trace of `a` is non-zero then the trace of `a ^ p ^ s` is non-zero
     in a separable extension of characteristic `p`. -/
 lemma trace_frob_zero (s : ℕ) (a : E) :
     Algebra.trace F E a ≠ 0 → Algebra.trace F E (a ^ p ^ s) ≠ 0 :=
@@ -101,7 +101,7 @@ variable (K : Type*) [Field K] [Algebra E K] [Algebra F K] [IsScalarTower F E K]
 
 variable (E) in
 /-- In characteristic `p > 0`, composition of the trace map for separable part and
-    `iRed` for purely inseparable one is non-trivial. -/
+    iterated Frobenius for purely inseparable one is non-trivial. -/
 lemma nontrivial_iteratedFrobenius_frob_trace {s : ℕ} (hs : IsPurelyInseparable.exponent E K ≤ s) :
     (Algebra.trace F E).comp (IsPurelyInseparable.iterateFrobeniusₛₗ F E K p hs) ≠ 0 := by
   haveI : ExpChar E p := expChar_of_injective_ringHom (algebraMap F E).injective p

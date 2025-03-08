@@ -1,10 +1,10 @@
-/- Accepted in Mathlib4 in `Mathlib.FieldTheory.PurelyInseparable.Exponent`. -/
 import Mathlib.FieldTheory.PurelyInseparable.Basic
 
 namespace IsPurelyInseparable
 
 variable (F K L : Type*)
 
+/- Accepted in Mathlib4 in `Mathlib.FieldTheory.PurelyInseparable.Exponent`. -/
 section Ring
 
 variable [CommRing K] [Ring L] [Algebra K L]
