@@ -26,6 +26,7 @@ import LocalRings.Utils.PurelyInseparable
   if it is locally generated.
 -/
 
+/- Accepted in Mathlib4 in `Mathlib.Algebra.Module.LinearMap.Defs`. -/
 namespace LinearMap
 
 @[inherit_doc] infixr:90 " ∘ₛₗ " => comp
@@ -109,7 +110,7 @@ lemma nontrivial_iteratedFrobenius_frob_trace {s : ℕ} (hs : IsPurelyInseparabl
   /- Trace is surjective, so there is `a : E` with `Algebra.trace F E a = 1` -/
   obtain ⟨a, ha⟩ := Algebra.trace_surjective F E 1
   replace ha : Algebra.trace F E (a ^ p ^ s) ≠ 0 := trace_frob_zero F p s a (ha ▸ one_ne_zero)
-  exact ⟨algebraMap E K a, IsPurelyInseparable.iterateFrobeniusₛₗ_algebraMap_bot F E K p hs a ▸ ha⟩
+  exact ⟨algebraMap E K a, IsPurelyInseparable.iterateFrobeniusₛₗ_algebraMap F E K p hs a ▸ ha⟩
 
 section FiniteDimensional
 
@@ -196,8 +197,8 @@ theorem notLocallyGenerated_KK_if_findim [FiniteDimensional F K₁] [FiniteDimen
   have hT2 : localElements F (K₁ × K₂) ⊆ U := by
     intro ⟨α₁, α₂⟩ hα
     simp [U, T, T₁, T₂, sub_eq_zero]
-    have hβ₁ := IsPurelyInseparable.iterateFrobeniusₛₗ_algebraMap_top F E₁ K₁ p hr₁ α₁
-    have hβ₂ := IsPurelyInseparable.iterateFrobeniusₛₗ_algebraMap_top F E₂ K₂ p hr₂ α₂
+    have hβ₁ := IsPurelyInseparable.algebraMap_iterateFrobeniusₛₗ F E₁ K₁ p hr₁ α₁
+    have hβ₂ := IsPurelyInseparable.algebraMap_iterateFrobeniusₛₗ F E₂ K₂ p hr₂ α₂
     set β₁ : E₁ := IsPurelyInseparable.iterateFrobeniusₛₗ F E₁ K₁ p hr₁ α₁
     set β₂ : E₂ := IsPurelyInseparable.iterateFrobeniusₛₗ F E₂ K₂ p hr₂ α₂
     /- Goal is now `a₂ * (Algebra.trace F E₁ β₁) = a₁ * (Algebra.trace F E₂ β₂)`. -/
