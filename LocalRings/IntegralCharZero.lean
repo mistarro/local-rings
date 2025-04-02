@@ -3,12 +3,12 @@ import Mathlib.FieldTheory.NormalizedTrace
 import LocalRings.Basic
 
 /-!
-# Results for integral (algebraic) algebras
+# Results for integral (algebraic) algebras in characteristic 0
 
 ## Main results
 
 * `isLocalRing_if_isLocallyGenerated_integral`: an integral (equivalently algebraic)
-  algebra is local if it is locally generated.
+  algebra over a field of characteristic 0 is local if it is locally generated.
 -/
 
 variable (F A K₁ K₂ : Type*)
@@ -16,8 +16,7 @@ variable [Field F] [CommRing A] [Algebra F A]
 variable [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂]
 
 /-- Uniform definition of *algebraic and of characteristic zero* to be used in
-    the generic theorem.
-  -/
+    the generic theorem. -/
 def UIntegralCharZero : Prop := Algebra.IsIntegral F A ∧ CharZero F
 
 /-- For finite-dimensional extensions `K₁`, `K₂` of `F`, the `F`-algebra `K₁ × K₂`
