@@ -1,5 +1,6 @@
+import Mathlib.FieldTheory.NormalizedTrace
+
 import LocalRings.Basic
-import LocalRings.Utils.NormalizedTrace
 
 /-!
 # Results for integral (algebraic) algebras
@@ -9,8 +10,6 @@ import LocalRings.Utils.NormalizedTrace
 * `isLocalRing_if_isLocallyGenerated_integral`: an integral (equivalently algebraic)
   algebra is local if it is locally generated.
 -/
-
-section Integral
 
 variable (F A K₁ K₂ : Type*)
 variable [Field F] [CommRing A] [Algebra F A]
@@ -73,5 +72,3 @@ theorem isLocalRing_if_isLocallyGenerated_integral [Nontrivial A]
   isLocalAlgebra_if_isLocallyGenerated
     (fun f hf ⟨_, hChar⟩ ↦ ⟨Algebra.IsIntegral.of_surjective f hf, hChar⟩)
     notLocallyGenerated_KK_if_integral h hLG
-
-end Integral

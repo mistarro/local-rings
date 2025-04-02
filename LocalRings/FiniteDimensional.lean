@@ -1,7 +1,8 @@
+import Mathlib.FieldTheory.PurelyInseparable.Exponent
 import Mathlib.FieldTheory.PurelyInseparable.PerfectClosure
 import Mathlib.RingTheory.Trace.Basic
+
 import LocalRings.Basic
-import LocalRings.Utils.PurelyInseparable
 
 /-!
 # Results for finite-dimensional algebras
@@ -11,13 +12,6 @@ import LocalRings.Utils.PurelyInseparable
 * `isLocalRing_if_isLocallyGenerated_findim`: a finite-dimensional algebra is local
   if it is locally generated.
 -/
-
-/- Accepted in Mathlib4 in `Mathlib.Algebra.Module.LinearMap.Defs`. -/
-namespace LinearMap
-
-@[inherit_doc] infixr:90 " ∘ₛₗ " => comp
-
-end LinearMap
 
 /- Accepted in Mathlib4 in `Mathlib.Algebra.CharP.Frobenius`. -/
 section
