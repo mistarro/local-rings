@@ -19,72 +19,47 @@ namespace LinearMap
 
 end LinearMap
 
+/- Accepted in Mathlib4 in `Mathlib.Algebra.CharP.Frobenius`. -/
+section
+
+variable {R : Type*} [CommSemiring R] {S : Type*} [CommSemiring S] (g : R →+* S)
+variable (p : ℕ) [ExpChar R p] [ExpChar S p]
+
+lemma RingHom.map_iterateFrobenius (x : R) (n : ℕ) :
+    g (iterateFrobenius R p n x) = iterateFrobenius S p n (g x) := by
+  simp [iterateFrobenius_def]
+
+lemma RingHom.iterateFrobenius_comm (n : ℕ) :
+    g.comp (iterateFrobenius R p n) = (iterateFrobenius S p n).comp g :=
+  ext fun x ↦ map_iterateFrobenius g p x n
+
+end
+
 variable (F : Type*) [Field F] {E : Type*} [Field E] [Algebra F E]
-variable (p : ℕ) [ExpChar F p]
-
-lemma interateFrobenius_algebraMap_comm (p : ℕ) [ExpChar F p] [ExpChar E p] (s : ℕ) :
-    (algebraMap F E).comp (iterateFrobenius F p s) =
-    (iterateFrobenius E p s).comp (algebraMap F E) :=
-  RingHom.ext (fun x ↦
-    ((algebraMap F E).comp_apply (iterateFrobenius F p s) x).trans <|
-    (congrArg (algebraMap F E) (iterateFrobenius_def p s x)).trans <|
-    ((algebraMap F E).map_pow x (p ^ s)).trans <|
-    (iterateFrobenius_def p s (algebraMap F E x)).symm.trans <|
-    ((iterateFrobenius E p s).comp_apply (algebraMap F E) x).symm)
-
-variable [Algebra.IsSeparable F E] [ExpChar E p]
+variable (p : ℕ) [ExpChar F p] [ExpChar E p]
 
 open scoped IntermediateField
 
-/-- For a separable extension `F ⊆ E` of characteristic `p > 0`,
-    the minimal polynomial of `a ^ p ^ s` is the minimal polynomial of `a` mapped via `(⬝ ^ p ^ s)`. -/
-lemma minpoly_map_frobenius (s : ℕ) (a : E) :
+/-- For an extension `F ⊆ E` of characteristic `p > 0`, if `a ∈ E` is separable then the minimal polynomial of
+    `a ^ p ^ s` equals the minimal polynomial of `a` mapped via `(⬝ ^ p ^ s)`. -/
+lemma minpoly_iterateFrobenius (s : ℕ) {a : E} (hsep : IsSeparable F a) :
     minpoly F (iterateFrobenius E p s a) = (minpoly F a).map (iterateFrobenius F p s) := by
-  let μ := minpoly F a
-  let μ₁ := minpoly F (a ^ p ^ s)
-  let μ₂ := μ.map (iterateFrobenius F p s)
-  /- goal: `μ₁ = μ₂` -/
-  have hμ₂aeval : 0 = μ₂.aeval (a ^ p ^ s) :=
-    iterateFrobenius_def p s a ▸
-    (iterateFrobenius E p s).map_zero ▸
-    minpoly.aeval F a ▸
-    μ.map_aeval_eq_aeval_map (interateFrobenius_algebraMap_comm F p s) a
-  have hai : IsIntegral F a := (Algebra.IsSeparable.isSeparable F a).isIntegral
-  have hapi : IsIntegral F (a ^ p ^ s) := hai.pow (p ^ s)
-  /- both are monic -/
-  have hμ₁monic : μ₁.Monic := minpoly.monic hapi
-  have hμ₂monic : μ₂.Monic := (minpoly.monic hai).map (iterateFrobenius F p s)
-  /- both have same degree -/
-  have hdeg : μ₂.natDegree = μ₁.natDegree := by
-    calc μ₂.natDegree
-      _ = μ.natDegree := μ.natDegree_map_eq_of_injective (iterateFrobenius F p s).injective
-      _ = Module.finrank F F⟮a⟯ := (IntermediateField.adjoin.finrank hai).symm
-      _ = Module.finrank F F⟮a ^ p ^ s⟯ := by
-        rw [IntermediateField.adjoin_simple_eq_adjoin_pow_expChar_pow_of_isSeparable' F E a p s]
-      _ = μ₁.natDegree := IntermediateField.adjoin.finrank hapi
-  /- one divides the other -/
-  have hdvd : μ₁ ∣ μ₂ := minpoly.dvd F (a ^ p ^ s) hμ₂aeval.symm
+  have hai : IsIntegral F a := hsep.isIntegral
+  have hapi : IsIntegral F (iterateFrobenius E p s a) := hai.pow _
   symm
-  exact Polynomial.eq_of_monic_of_dvd_of_natDegree_le hμ₁monic hμ₂monic hdvd (le_of_eq hdeg)
-
-variable [FiniteDimensional F E]
-
-/-- If the trace of `a` is non-zero then the trace of `a ^ p ^ s` is non-zero
-    in a separable extension of characteristic `p`. -/
-lemma trace_frob_zero (s : ℕ) (a : E) :
-    Algebra.trace F E a ≠ 0 → Algebra.trace F E (a ^ p ^ s) ≠ 0 :=
-  fun h ↦
-    let ⟨hn, hc⟩ := mul_ne_zero_iff.mp (trace_eq_finrank_mul_minpoly_nextCoeff F a ▸ h)
-    trace_eq_finrank_mul_minpoly_nextCoeff F (a ^ p ^ s) ▸
-      IntermediateField.adjoin_simple_eq_adjoin_pow_expChar_pow_of_isSeparable' F E a p s ▸
-      mul_ne_zero_iff.mpr ⟨hn, neg_ne_zero.mpr <|
-        iterateFrobenius_def (R := E) p .. ▸
-        minpoly_map_frobenius F p s a ▸
-        Polynomial.nextCoeff_map (iterateFrobenius F p s).injective (minpoly F a) ▸
-        iterateFrobenius_def (R := F) p .. ▸ pow_ne_zero (p ^ s) (neg_ne_zero.mp hc)⟩
+  refine Polynomial.eq_of_monic_of_dvd_of_natDegree_le
+    (minpoly.monic hapi)
+    (minpoly.monic hai |>.map _)
+    (minpoly.dvd F (a ^ p ^ s) ?haeval)
+    ?hdeg
+  · simpa using Eq.symm <| (minpoly F a).map_aeval_eq_aeval_map (RingHom.iterateFrobenius_comm _ p s) a
+  · rw [(minpoly F a).natDegree_map_eq_of_injective (iterateFrobenius F p s).injective,
+      ← IntermediateField.adjoin.finrank hai,
+      IntermediateField.adjoin_simple_eq_adjoin_pow_expChar_pow_of_isSeparable F E hsep p s,
+      ← IntermediateField.adjoin.finrank hapi, iterateFrobenius_def]
 
 variable (K : Type*) [Field K] [Algebra E K] [Algebra F K] [IsScalarTower F E K]
-  [FiniteDimensional E K] [IsPurelyInseparable E K]
+  [FiniteDimensional F E] [Algebra.IsSeparable F E] [FiniteDimensional E K] [IsPurelyInseparable E K]
 
 variable (E) in
 /-- In characteristic `p > 0`, composition of the trace map for separable part and
@@ -95,8 +70,15 @@ lemma nontrivial_iteratedFrobenius_frob_trace {s : ℕ} (hs : IsPurelyInseparabl
   simp [DFunLike.ne_iff]
   /- Trace is surjective, so there is `a : E` with `Algebra.trace F E a = 1` -/
   obtain ⟨a, ha⟩ := Algebra.trace_surjective F E 1
-  replace ha : Algebra.trace F E (a ^ p ^ s) ≠ 0 := trace_frob_zero F p s a (ha ▸ one_ne_zero)
-  exact ⟨algebraMap E K a, IsPurelyInseparable.iterateFrobeniusₛₗ_algebraMap F E K p hs a ▸ ha⟩
+  refine ⟨algebraMap E K a, IsPurelyInseparable.iterateFrobeniusₛₗ_algebraMap F E K p hs a ▸ ?_⟩
+  have hsep : IsSeparable F a := Algebra.IsSeparable.isSeparable F a
+  let ⟨hn, hc⟩ := mul_ne_zero_iff.mp (trace_eq_finrank_mul_minpoly_nextCoeff F a ▸ ha ▸ one_ne_zero)
+  rw [← ne_eq, trace_eq_finrank_mul_minpoly_nextCoeff, mul_ne_zero_iff]
+  constructor
+  · rwa [← IntermediateField.adjoin_simple_eq_adjoin_pow_expChar_pow_of_isSeparable F E hsep p s]
+  · rw [← iterateFrobenius_def, minpoly_iterateFrobenius F p s hsep,
+      Polynomial.nextCoeff_map (iterateFrobenius F p s).injective, iterateFrobenius_def, neg_ne_zero]
+    exact pow_ne_zero _ <| neg_ne_zero.mp hc
 
 section FiniteDimensional
 
