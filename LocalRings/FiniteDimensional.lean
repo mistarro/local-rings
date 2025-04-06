@@ -32,11 +32,11 @@ end
 variable (F : Type*) [Field F] {E : Type*} [Field E] [Algebra F E]
 variable (p : ℕ) [ExpChar F p] [ExpChar E p]
 
-open scoped IntermediateField
-
+/- Accepted in Mathlib4 in `Mathlib.FieldTheory.PurelyInseparable.PerfectClosure`. -/
+variable {F} in
 /-- For an extension `F ⊆ E` of characteristic `p > 0`, if `a ∈ E` is separable then the minimal polynomial of
     `a ^ p ^ s` equals the minimal polynomial of `a` mapped via `(⬝ ^ p ^ s)`. -/
-lemma minpoly_iterateFrobenius (s : ℕ) {a : E} (hsep : IsSeparable F a) :
+lemma minpoly.iterateFrobenius_of_isSeparable (s : ℕ) {a : E} (hsep : IsSeparable F a) :
     minpoly F (iterateFrobenius E p s a) = (minpoly F a).map (iterateFrobenius F p s) := by
   have hai : IsIntegral F a := hsep.isIntegral
   have hapi : IsIntegral F (iterateFrobenius E p s a) := hai.pow _
@@ -52,13 +52,12 @@ lemma minpoly_iterateFrobenius (s : ℕ) {a : E} (hsep : IsSeparable F a) :
       IntermediateField.adjoin_simple_eq_adjoin_pow_expChar_pow_of_isSeparable F E hsep p s,
       ← IntermediateField.adjoin.finrank hapi, iterateFrobenius_def]
 
-variable (K : Type*) [Field K] [Algebra E K] [Algebra F K] [IsScalarTower F E K]
+variable {K : Type*} [Field K] [Algebra E K] [Algebra F K] [IsScalarTower F E K]
   [FiniteDimensional F E] [Algebra.IsSeparable F E] [FiniteDimensional E K] [IsPurelyInseparable E K]
 
-variable (E) in
 /-- In characteristic `p > 0`, composition of the trace map for separable part and
     iterated Frobenius for purely inseparable one is non-trivial. -/
-lemma nontrivial_iteratedFrobenius_frob_trace {s : ℕ} (hs : IsPurelyInseparable.exponent E K ≤ s) :
+lemma nontrivial_trace_iteratedFrobenius {s : ℕ} (hs : IsPurelyInseparable.exponent E K ≤ s) :
     (Algebra.trace F E).comp (IsPurelyInseparable.iterateFrobeniusₛₗ F E K p hs) ≠ 0 := by
   haveI : ExpChar E p := expChar_of_injective_ringHom (algebraMap F E).injective p
   simp [DFunLike.ne_iff]
@@ -70,7 +69,7 @@ lemma nontrivial_iteratedFrobenius_frob_trace {s : ℕ} (hs : IsPurelyInseparabl
   rw [← ne_eq, trace_eq_finrank_mul_minpoly_nextCoeff, mul_ne_zero_iff]
   constructor
   · rwa [← IntermediateField.adjoin_simple_eq_adjoin_pow_expChar_pow_of_isSeparable F E hsep p s]
-  · rw [← iterateFrobenius_def, minpoly_iterateFrobenius F p s hsep,
+  · rw [← iterateFrobenius_def, minpoly.iterateFrobenius_of_isSeparable p s hsep,
       Polynomial.nextCoeff_map (iterateFrobenius F p s).injective, iterateFrobenius_def, neg_ne_zero]
     exact pow_ne_zero _ <| neg_ne_zero.mp hc
 
@@ -142,14 +141,14 @@ theorem notLocallyGenerated_KK_if_findim [FiniteDimensional F K₁] [FiniteDimen
     apply (not_congr <| LinearMap.ker_eq_top).mpr
     cases a_nonzero with
     | inl ha₁ =>
-        have h := nontrivial_iteratedFrobenius_frob_trace F E₂ p K₂ hr₂
+        have h := nontrivial_trace_iteratedFrobenius F p hr₂
         simp [T₂, DFunLike.ne_iff] at h ⊢
         obtain ⟨x, hx⟩ := h
         use 0, x
         simp [T, T₁, T₂]
         exact ⟨ha₁, hx⟩
     | inr ha₂ =>
-        have h := nontrivial_iteratedFrobenius_frob_trace F E₁ p K₁ hr₁
+        have h := nontrivial_trace_iteratedFrobenius F p hr₁
         simp [T₁, DFunLike.ne_iff] at h ⊢
         obtain ⟨x, hx⟩ := h
         use x, 0
