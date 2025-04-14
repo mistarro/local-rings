@@ -26,6 +26,49 @@ import Mathlib.RingTheory.LocalRing.Subring
   an `F`-algebra `A` is local if it satisfies `P A` and is locally generated.
 -/
 
+section Mathlib
+
+namespace IsLocalRing
+
+/- Accepted in Mathlib in `Mathlib.RingTheory.LocalRing.MaximalIdeal.Basic` -/
+/-- If the maximal spectrum of a ring is a singleton, then the ring is local. -/
+theorem of_singleton_maximalSpectrum {R : Type*} [CommSemiring R] [Subsingleton (MaximalSpectrum R)]
+    [Nonempty (MaximalSpectrum R)] : IsLocalRing R :=
+  let m := Classical.arbitrary (MaximalSpectrum R)
+  .of_unique_max_ideal ⟨m.asIdeal, m.isMaximal,
+    fun I hI ↦ MaximalSpectrum.mk.inj <| Subsingleton.elim ⟨I, hI⟩ m⟩
+
+/- PR #24043 -/
+/-- For a non-local, nontrivial, commutative (semi)ring, the maximal spectrum is non-trivial. -/
+theorem nontrivial_maximalSpectrum_of_not_isLocalRing {R : Type*} [CommSemiring R] [Nontrivial R]
+    (h : ¬IsLocalRing R) : Nontrivial (MaximalSpectrum R) :=
+  not_subsingleton_iff_nontrivial.mp fun _ ↦ h of_singleton_maximalSpectrum
+
+/- PR #24043 -/
+/-- A non-local commutative (semi)ring has two distinct maximal ideals. -/
+theorem exist_maximal_ne_of_not_isLocalRing {R : Type*} [CommSemiring R] [Nontrivial R] (h : ¬IsLocalRing R) :
+    ∃ m₁ m₂ : Ideal R, m₁.IsMaximal ∧ m₂.IsMaximal ∧ m₁ ≠ m₂ :=
+  let ⟨⟨m₁, hm₁⟩, ⟨m₂, hm₂⟩, hm₁m₂⟩ := nontrivial_maximalSpectrum_of_not_isLocalRing h
+  ⟨m₁, m₂, ⟨hm₁, hm₂, by by_contra; apply hm₁m₂; congr⟩⟩
+
+/- PR #24043 -/
+/-- There exists a surjective ring homomorphism from a non-local commutative ring onto a product
+of two fields. -/
+theorem exists_surjective_of_not_isLocalRing.{u} {R : Type u} [CommRing R] [Nontrivial R]
+    (h : ¬IsLocalRing R) :
+    ∃ (K₁ K₂ : Type u) (_ : Field K₁) (_ : Field K₂) (f : R →+* K₁ × K₂),
+      Function.Surjective f := by
+  /- get two different maximal ideals and project on the product of quotients -/
+  obtain ⟨m₁, m₂, _, _, hm₁m₂⟩ := exist_maximal_ne_of_not_isLocalRing h
+  let e := Ideal.quotientInfEquivQuotientProd m₁ m₂ <| Ideal.isCoprime_of_isMaximal hm₁m₂
+  let f := e.toRingHom.comp <| Ideal.Quotient.mk (m₁ ⊓ m₂)
+  use R ⧸ m₁, R ⧸ m₂, Ideal.Quotient.field m₁, Ideal.Quotient.field m₂, f
+  apply Function.Surjective.comp e.surjective Ideal.Quotient.mk_surjective
+
+end IsLocalRing
+
+end Mathlib
+
 variable (F : Type*)
 variable {A A' : Type*}
 variable [Field F] [CommRing A] [Algebra F A] [CommRing A'] [Algebra F A']
@@ -62,16 +105,20 @@ theorem isLocalElement_map [Nontrivial A'] (f : A →ₐ[F] A')
   ⟨g.range, ⟨.of_surjective' (R := B) g.rangeRestrict (g.rangeRestrict_surjective),
     g.mem_range.mpr ⟨⟨a, haB⟩, rfl⟩⟩⟩
 
+/- PR #24048 -/
+theorem Algebra.adjoin_singleton_le {R A : Type*} [CommSemiring R] [Semiring A] [Algebra R A]
+    {S : Subalgebra R A} {a : A} (H : a ∈ S) : Algebra.adjoin R {a} ≤ S :=
+  Algebra.adjoin_le (Set.singleton_subset_iff.mpr H)
+
 /-- If a local element `a` of an `F`-algebra `A` is integral then
     it belongs to a finite-dimensional local `F`-subalgebra of `A`. -/
 theorem isLocalElement_integral {a : A} (hi : IsIntegral F a) (hl : isLocalElement F a) :
     ∃ B : Subalgebra F A, IsLocalRing B ∧ FiniteDimensional F B ∧ a ∈ B :=
   let B := Algebra.adjoin F {a}
-  haveI hfd := Algebra.finite_adjoin_simple_of_isIntegral hi
-  have hu (b : B) := IsArtinianRing.isUnit_of_isIntegral_of_nonZeroDivisor (IsIntegral.of_finite F b)
-  let ⟨_, ⟨_, ha⟩⟩ := hl
-  ⟨B, ⟨.of_subring' (Algebra.adjoin_le (Set.singleton_subset_iff.mpr ha)) fun b ↦ hu b,
-    hfd, Algebra.self_mem_adjoin_singleton F a⟩⟩
+  have hfd := Algebra.finite_adjoin_simple_of_isIntegral hi
+  have hu (b : B) := IsArtinianRing.isUnit_of_isIntegral_of_nonZeroDivisor (.of_finite F b)
+  let ⟨_, _, ha⟩ := hl
+  ⟨B, .of_subring' (Algebra.adjoin_singleton_le ha) hu, hfd, Algebra.self_mem_adjoin_singleton F a⟩
 
 variable (F A) in
 /-- Set of all local elements of an `F`-algebra `A`. -/
@@ -119,29 +166,6 @@ lemma local_minpoly_eq {K₁ K₂ : Type*} [Field K₁] [Field K₂] [Algebra F 
 
 universe u v
 
-/-- For a non-local ring, there exists a surjection onto product of two fields. -/
-lemma nonLocalProj {R : Type u} [CommRing R] [Nontrivial R] (h : ¬IsLocalRing R) :
-    ∃ (K₁ K₂ : Type u) (_ : Field K₁) (_ : Field K₂) (f : R →+* K₁ × K₂),
-      Function.Surjective f := by
-  /- get two different maximal ideals and project on the product of quotients -/
-  obtain ⟨a, ⟨hnua, hnub⟩⟩ :=
-    (exists_congr fun x : R ↦ not_or).mp <|
-      not_forall.mp (h ∘ .of_isUnit_or_isUnit_one_sub_self)
-  obtain ⟨m₁, ⟨_, ham⟩⟩ := exists_max_ideal_of_mem_nonunits hnua
-  obtain ⟨m₂, ⟨_, hbm⟩⟩ := exists_max_ideal_of_mem_nonunits hnub
-  -- `R →+* R ⧸ m₁ ⊓ m₂`
-  let g := Ideal.Quotient.mk (m₁ ⊓ m₂)
-  -- `R ⧸ m₁ ⊓ m₂ ≃+* (R ⧸ m₁) × R ⧸ m₂`
-  let e := Ideal.quotientInfEquivQuotientProd m₁ m₂ <|
-    Ideal.isCoprime_iff_exists.mpr ⟨a, ham, 1 - a, hbm, add_sub_cancel a 1⟩
-  let K₁ := R ⧸ m₁
-  let K₂ := R ⧸ m₂
-  let fK₁ : Field K₁ := Ideal.Quotient.field m₁
-  let fK₂ : Field K₂ := Ideal.Quotient.field m₂
-  let f := RingHom.comp (e : R ⧸ m₁ ⊓ m₂ →+* K₁ × K₂) g
-  use K₁, K₂, fK₁, fK₂, f
-  apply Function.Surjective.comp e.surjective Ideal.Quotient.mk_surjective
-
 /-- Generic theorem: given
       * `hPQ`: proof that `P F A` implies `Q F K` for a surjective `f : A →ₐ[F] K`;
       * `hKK`: proof that `K₁ × K₂` cannot be locally generated if `Q F K₁` and `Q F K₂`;
@@ -156,7 +180,7 @@ theorem isLocalAlgebra_if_isLocallyGenerated {F : Type u} {A : Type v}
       [Algebra F K₁] [Algebra F K₂], Q F K₁ → Q F K₂ → ¬isLocallyGenerated F (K₁ × K₂))
     (h : P F A) (hLG : isLocallyGenerated F A) : IsLocalRing A := by
   by_contra hNonLocalA
-  let ⟨K₁, K₂, fK₁, fK₂, f', hf'⟩ := nonLocalProj hNonLocalA
+  let ⟨K₁, K₂, fK₁, fK₂, f', hf'⟩ := IsLocalRing.exists_surjective_of_not_isLocalRing hNonLocalA
   /- introduce compatible `F`-algebra structures -/
   let algK₁ : Algebra F K₁ := RingHom.fst K₁ K₂ |>.comp f' |>.comp (algebraMap F A) |>.toAlgebra
   let algK₂ : Algebra F K₂ := RingHom.snd K₁ K₂ |>.comp f' |>.comp (algebraMap F A) |>.toAlgebra
