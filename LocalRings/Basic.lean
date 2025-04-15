@@ -38,20 +38,20 @@ theorem of_singleton_maximalSpectrum {R : Type*} [CommSemiring R] [Subsingleton 
   .of_unique_max_ideal ⟨m.asIdeal, m.isMaximal,
     fun I hI ↦ MaximalSpectrum.mk.inj <| Subsingleton.elim ⟨I, hI⟩ m⟩
 
-/- PR #24043 -/
+/- Accepted in Mathlib in `Mathlib.RingTheory.LocalRing.NonLocalRing` -/
 /-- For a non-local, nontrivial, commutative (semi)ring, the maximal spectrum is non-trivial. -/
 theorem nontrivial_maximalSpectrum_of_not_isLocalRing {R : Type*} [CommSemiring R] [Nontrivial R]
     (h : ¬IsLocalRing R) : Nontrivial (MaximalSpectrum R) :=
   not_subsingleton_iff_nontrivial.mp fun _ ↦ h of_singleton_maximalSpectrum
 
-/- PR #24043 -/
+/- Accepted in Mathlib in `Mathlib.RingTheory.LocalRing.NonLocalRing` -/
 /-- A non-local commutative (semi)ring has two distinct maximal ideals. -/
 theorem exist_maximal_ne_of_not_isLocalRing {R : Type*} [CommSemiring R] [Nontrivial R] (h : ¬IsLocalRing R) :
     ∃ m₁ m₂ : Ideal R, m₁.IsMaximal ∧ m₂.IsMaximal ∧ m₁ ≠ m₂ :=
   let ⟨⟨m₁, hm₁⟩, ⟨m₂, hm₂⟩, hm₁m₂⟩ := nontrivial_maximalSpectrum_of_not_isLocalRing h
   ⟨m₁, m₂, ⟨hm₁, hm₂, by by_contra; apply hm₁m₂; congr⟩⟩
 
-/- PR #24043 -/
+/- Accepted in Mathlib in `Mathlib.RingTheory.LocalRing.NonLocalRing` -/
 /-- There exists a surjective ring homomorphism from a non-local commutative ring onto a product
 of two fields. -/
 theorem exists_surjective_of_not_isLocalRing.{u} {R : Type u} [CommRing R] [Nontrivial R]
@@ -66,6 +66,11 @@ theorem exists_surjective_of_not_isLocalRing.{u} {R : Type u} [CommRing R] [Nont
   apply Function.Surjective.comp e.surjective Ideal.Quotient.mk_surjective
 
 end IsLocalRing
+
+/- Accepted in Mathlib in `Mathlib.Algebra.Algebra.Subalgebra.Lattice` -/
+theorem Algebra.adjoin_singleton_le {R A : Type*} [CommSemiring R] [Semiring A] [Algebra R A]
+    {S : Subalgebra R A} {a : A} (H : a ∈ S) : Algebra.adjoin R {a} ≤ S :=
+  Algebra.adjoin_le (Set.singleton_subset_iff.mpr H)
 
 end Mathlib
 
@@ -84,11 +89,9 @@ theorem all_local_if_local [IsLocalRing A] (a : A) : isLocalElement F a :=
 
 /-- If all elements of an `F`-algebra are local then the algebra is local. -/
 theorem local_if_all_local [Nontrivial A] (ha : ∀ a : A, isLocalElement F a) : IsLocalRing A :=
-  .of_isUnit_or_isUnit_one_sub_self fun a ↦ let ⟨B, ⟨_, haB⟩⟩ := ha a;
-    Or.imp
-      (IsUnit.map B.subtype)
-      (IsUnit.map B.subtype)
-      (IsLocalRing.isUnit_or_isUnit_one_sub_self (⟨a, haB⟩ : B))
+  .of_isUnit_or_isUnit_one_sub_self
+    fun a ↦ let ⟨B, ⟨_, haB⟩⟩ := ha a; (IsLocalRing.isUnit_or_isUnit_one_sub_self (⟨a, haB⟩ : B)).imp
+      (.map B.subtype) (.map B.subtype)
 
 variable {F}
 
@@ -104,11 +107,6 @@ theorem isLocalElement_map [Nontrivial A'] (f : A →ₐ[F] A')
   let g : B →ₐ[F] A' := f.comp (B.val)
   ⟨g.range, ⟨.of_surjective' (R := B) g.rangeRestrict (g.rangeRestrict_surjective),
     g.mem_range.mpr ⟨⟨a, haB⟩, rfl⟩⟩⟩
-
-/- PR #24048 -/
-theorem Algebra.adjoin_singleton_le {R A : Type*} [CommSemiring R] [Semiring A] [Algebra R A]
-    {S : Subalgebra R A} {a : A} (H : a ∈ S) : Algebra.adjoin R {a} ≤ S :=
-  Algebra.adjoin_le (Set.singleton_subset_iff.mpr H)
 
 /-- If a local element `a` of an `F`-algebra `A` is integral then
     it belongs to a finite-dimensional local `F`-subalgebra of `A`. -/
@@ -135,7 +133,7 @@ lemma isLocallyGenerated_surjective [Nontrivial A'] {f : A →ₐ[F] A'}
     (hf : Function.Surjective f) (h : isLocallyGenerated F A) : isLocallyGenerated F A' := by
   let lA := localElements F A
   let lA' := localElements F A'
-  have hsub : f '' lA ⊆ lA' := fun y ⟨x, ⟨hx, hfxy⟩⟩ ↦ hfxy ▸ isLocalElement_map f hx
+  have hsub : f '' lA ⊆ lA' := fun y ⟨x, hx, hfxy⟩ ↦ hfxy ▸ isLocalElement_map f hx
   replace hsub : (Submodule.span F lA).map f ≤ Submodule.span F lA' :=
     Set.Subset.trans
       (Submodule.image_span_subset_span f lA)
@@ -148,8 +146,8 @@ lemma local_minpoly_eq {K₁ K₂ : Type*} [Field K₁] [Field K₂] [Algebra F 
     minpoly F a.1 = minpoly F a.2 := by
   let μ₁ := minpoly F a.1
   obtain ⟨B, ⟨_, _, ha⟩⟩ := isLocalElement_integral hi hl
-  haveI : IsArtinianRing B := isArtinian_of_tower F inferInstance
-  haveI : IsReduced B := isReduced_of_injective B.toSubring.subtype (by apply Subtype.coe_injective)
+  have : IsArtinianRing B := isArtinian_of_tower F inferInstance
+  have : IsReduced B := isReduced_of_injective B.toSubring.subtype (by apply Subtype.coe_injective)
   letI : Field B := IsArtinianRing.isField_of_isReduced_of_isLocalRing B |>.toField
   let a' : B := ⟨a, ha⟩
   let f₁ := (AlgHom.fst F K₁ K₂).comp (B.val) /- projection `B →ₐ[F] K₁` -/
