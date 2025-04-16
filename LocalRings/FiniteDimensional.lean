@@ -164,9 +164,9 @@ theorem notLocallyGenerated_KK_if_findim [FiniteDimensional F K₁] [FiniteDimen
     set β₂ : E₂ := IsPurelyInseparable.iterateFrobeniusₛₗ F E₂ K₂ p hr₂ α₂
     /- Goal is now `a₂ * (Algebra.trace F E₁ β₁) = a₁ * (Algebra.trace F E₂ β₂)`. -/
     /- If `α` is local then so is `α ^ p ^ r`. -/
-    replace hα := isLocalElement_pow hα (p ^ r)
+    replace hα := hα.pow (p ^ r)
     /- Components of `α ^ p ^ r` have the same minimal polynomial. -/
-    replace hα := local_minpoly_eq (IsIntegral.of_finite F (α₁ ^ p ^ r, α₂ ^ p ^ r)) hα
+    replace hα := hα.minpoly_eq_minpoly (IsIntegral.of_finite F (α₁ ^ p ^ r, α₂ ^ p ^ r))
     /- Rewrite using the fact that `β₁` and `β₂` have the same minimal polynomial. -/
     rw [← hβ₁, ← hβ₂,
       minpoly.algebraMap_eq (algebraMap E₁ K₁).injective,

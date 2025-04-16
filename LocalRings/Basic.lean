@@ -84,11 +84,11 @@ def isLocalElement (a : A) : Prop :=
   ∃ B : Subalgebra F A, IsLocalRing B ∧ a ∈ B
 
 /-- In a local `F`-algebra, all elements are local -/
-theorem all_local_if_local [IsLocalRing A] (a : A) : isLocalElement F a :=
+theorem isLocalElement.of_isLocalRing [IsLocalRing A] (a : A) : isLocalElement F a :=
   ⟨⊤, ⟨Subsemiring.topEquiv.symm.isLocalRing, Subsemiring.mem_top a⟩⟩
 
 /-- If all elements of an `F`-algebra are local then the algebra is local. -/
-theorem local_if_all_local [Nontrivial A] (ha : ∀ a : A, isLocalElement F a) : IsLocalRing A :=
+theorem isLocalRing_of_all_isLocalElement [Nontrivial A] (ha : ∀ a : A, isLocalElement F a) : IsLocalRing A :=
   .of_isUnit_or_isUnit_one_sub_self
     fun a ↦ let ⟨B, ⟨_, haB⟩⟩ := ha a; (IsLocalRing.isUnit_or_isUnit_one_sub_self (⟨a, haB⟩ : B)).imp
       (.map B.subtype) (.map B.subtype)
@@ -96,12 +96,12 @@ theorem local_if_all_local [Nontrivial A] (ha : ∀ a : A, isLocalElement F a) :
 variable {F}
 
 /-- A power of a local element is a local element. -/
-theorem isLocalElement_pow {a : A} (ha : isLocalElement F a) (n : ℕ) : isLocalElement F (a ^ n) :=
+theorem isLocalElement.pow {a : A} (ha : isLocalElement F a) (n : ℕ) : isLocalElement F (a ^ n) :=
   let ⟨B, ⟨hB, haB⟩⟩ := ha
   ⟨B, ⟨hB, B.pow_mem haB n⟩⟩
 
 /-- A homomorphism of algebras maps local elements to local elements. -/
-theorem isLocalElement_map [Nontrivial A'] (f : A →ₐ[F] A')
+theorem isLocalElement.map [Nontrivial A'] (f : A →ₐ[F] A')
     {a : A} (ha : isLocalElement F a) : isLocalElement F (f a) :=
   let ⟨B, ⟨_, haB⟩⟩ := ha
   let g : B →ₐ[F] A' := f.comp (B.val)
@@ -110,13 +110,26 @@ theorem isLocalElement_map [Nontrivial A'] (f : A →ₐ[F] A')
 
 /-- If a local element `a` of an `F`-algebra `A` is integral then
     it belongs to a finite-dimensional local `F`-subalgebra of `A`. -/
-theorem isLocalElement_integral {a : A} (hi : IsIntegral F a) (hl : isLocalElement F a) :
+theorem isLocalElement.integral {a : A} (hi : IsIntegral F a) (hl : isLocalElement F a) :
     ∃ B : Subalgebra F A, IsLocalRing B ∧ FiniteDimensional F B ∧ a ∈ B :=
   let B := Algebra.adjoin F {a}
   have hfd := Algebra.finite_adjoin_simple_of_isIntegral hi
   have hu (b : B) := IsArtinianRing.isUnit_of_isIntegral_of_nonZeroDivisor (.of_finite F b)
   let ⟨_, _, ha⟩ := hl
   ⟨B, .of_subring' (Algebra.adjoin_singleton_le ha) hu, hfd, Algebra.self_mem_adjoin_singleton F a⟩
+
+/-- If `(a₁, a₂) : K₁ × K₂` is local then `minpoly F a₁ = minpoly F a₂`. -/
+lemma isLocalElement.minpoly_eq_minpoly {K₁ K₂ : Type*} [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂]
+    {a : K₁ × K₂} (hi : IsIntegral F a) (hl : isLocalElement F a) :
+    minpoly F a.1 = minpoly F a.2 := by
+  obtain ⟨B, ⟨_, _, ha⟩⟩ := hl.integral hi
+  have : IsArtinianRing B := isArtinian_of_tower F inferInstance
+  have : IsReduced B := isReduced_of_injective B.toSubring.subtype (by apply Subtype.coe_injective)
+  letI : Field B := IsArtinianRing.isField_of_isReduced_of_isLocalRing B |>.toField
+  let a' : B := ⟨a, ha⟩
+  let f₁ : B →ₐ[F] K₁ := (AlgHom.fst F K₁ K₂).comp (B.val)
+  let f₂ : B →ₐ[F] K₂ := (AlgHom.snd F K₁ K₂).comp (B.val)
+  simpa using (minpoly.algHom_eq f₁ f₁.injective a').trans (minpoly.algHom_eq f₂ f₂.injective a').symm
 
 variable (F A) in
 /-- Set of all local elements of an `F`-algebra `A`. -/
@@ -129,38 +142,13 @@ def isLocallyGenerated : Prop := Submodule.span F (localElements F A) = ⊤
 
 /-- If `F`-algebra `A` is locally generated and `f : A →ₐ[F] A'` is a surjective `F`-algebra
     homomorphism, then `F`-algebra `A'` is also locally generated. -/
-lemma isLocallyGenerated_surjective [Nontrivial A'] {f : A →ₐ[F] A'}
+lemma isLocallyGenerated.map_surjective [Nontrivial A'] {f : A →ₐ[F] A'}
     (hf : Function.Surjective f) (h : isLocallyGenerated F A) : isLocallyGenerated F A' := by
   let lA := localElements F A
   let lA' := localElements F A'
-  have hsub : f '' lA ⊆ lA' := fun y ⟨x, hx, hfxy⟩ ↦ hfxy ▸ isLocalElement_map f hx
-  replace hsub : (Submodule.span F lA).map f ≤ Submodule.span F lA' :=
-    Set.Subset.trans
-      (Submodule.image_span_subset_span f lA)
-      (Submodule.span_mono hsub)
-  exact top_le_iff.mp <| LinearMap.range_eq_top.mpr hf ▸ Submodule.map_top f ▸ h ▸ hsub
-
-/-- If `(a₁, a₂) : K₁ × K₂` is local then `minpoly F a₁ = minpoly F a₂`. -/
-lemma local_minpoly_eq {K₁ K₂ : Type*} [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂]
-    {a : K₁ × K₂} (hi : IsIntegral F a) (hl : isLocalElement F a) :
-    minpoly F a.1 = minpoly F a.2 := by
-  let μ₁ := minpoly F a.1
-  obtain ⟨B, ⟨_, _, ha⟩⟩ := isLocalElement_integral hi hl
-  have : IsArtinianRing B := isArtinian_of_tower F inferInstance
-  have : IsReduced B := isReduced_of_injective B.toSubring.subtype (by apply Subtype.coe_injective)
-  letI : Field B := IsArtinianRing.isField_of_isReduced_of_isLocalRing B |>.toField
-  let a' : B := ⟨a, ha⟩
-  let f₁ := (AlgHom.fst F K₁ K₂).comp (B.val) /- projection `B →ₐ[F] K₁` -/
-  let f₂ := (AlgHom.snd F K₁ K₂).comp (B.val) /- projection `B →ₐ[F] K₂` -/
-  have := μ₁.aeval_algHom_apply f₁ a'
-  have : f₁ (μ₁.aeval a') = 0 := (minpoly.aeval F a.1 ▸ μ₁.aeval_algHom_apply f₁ a').symm
-  have : μ₁.aeval a' = 0 := (map_eq_zero f₁).mp this
-  have : μ₁.aeval a.2 = 0 := map_zero f₂ ▸ this ▸ μ₁.aeval_algHom_apply f₂ a'
-  have ha1int : IsIntegral F a.1 := hi.map (AlgHom.fst F K₁ K₂)
-  exact minpoly.eq_of_irreducible_of_monic
-    (minpoly.irreducible ha1int)
-    this
-    (minpoly.monic ha1int)
+  have hsub : f '' lA ⊆ lA' := fun y ⟨x, hx, hfxy⟩ ↦ hfxy ▸ hx.map f
+  have htop := LinearMap.range_eq_top_of_surjective f hf ▸ Submodule.map_top f ▸ h ▸ Submodule.map_span f lA
+  exact top_le_iff.mp <| htop ▸ Submodule.span_mono hsub
 
 universe u v
 
@@ -193,4 +181,4 @@ theorem isLocalAlgebra_if_isLocallyGenerated {F : Type u} {A : Type v}
   let f₂ := (AlgHom.snd F K₁ K₂).comp f
   have hf₂ : Function.Surjective f₂ :=
     (AlgHom.snd F K₁ K₂).coe_comp f ▸ Function.Surjective.comp Prod.snd_surjective hf
-  exact hKK F (hPQ f₁ hf₁ h) (hPQ f₂ hf₂ h) (isLocallyGenerated_surjective hf hLG)
+  exact hKK F (hPQ f₁ hf₁ h) (hPQ f₂ hf₂ h) (hLG.map_surjective hf)

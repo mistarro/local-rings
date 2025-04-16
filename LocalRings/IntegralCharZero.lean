@@ -44,7 +44,7 @@ theorem notLocallyGenerated_KK_if_integral :
     intro α hα_loc
     have hα₁_int := Algebra.isIntegral_def.mp ‹_› α.1
     have hα₂_int := Algebra.isIntegral_def.mp ‹_› α.2
-    have hα_minpoly := local_minpoly_eq (hα₁_int.pair hα₂_int) hα_loc
+    have hα_minpoly := hα_loc.minpoly_eq_minpoly (hα₁_int.pair hα₂_int)
     simp [U, T, sub_eq_zero, Algebra.normalizedTrace_def]
     exact congrArg₂ (fun (x : ℕ) (y : F) ↦ (x : F)⁻¹ * y)
       /- finrank = finrank -/
