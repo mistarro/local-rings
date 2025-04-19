@@ -150,15 +150,13 @@ lemma isLocallyGenerated.map_surjective [Nontrivial A'] {f : A →ₐ[F] A'}
   have htop := LinearMap.range_eq_top_of_surjective f hf ▸ Submodule.map_top f ▸ h ▸ Submodule.map_span f lA
   exact top_le_iff.mp <| htop ▸ Submodule.span_mono hsub
 
-universe u v
-
 /-- Generic theorem: given
       * `hPQ`: proof that `P F A` implies `Q F K` for a surjective `f : A →ₐ[F] K`;
       * `hKK`: proof that `K₁ × K₂` cannot be locally generated if `Q F K₁` and `Q F K₂`;
     an `F`-algebra `A` satisfying `P F A` is local if it is locally generated. -/
-theorem isLocalAlgebra_if_isLocallyGenerated {F : Type u} {A : Type v}
+theorem isLocalAlgebra_if_isLocallyGenerated.{u} {F : Type*} {A : Type u}
     [Field F] [CommRing A] [Nontrivial A] [Algebra F A]
-    {Q : ∀ (F) (K : Type v) [Field F] [Field K] [Algebra F K], Prop}
+    {Q : ∀ (F) (K : Type u) [Field F] [Field K] [Algebra F K], Prop}
     {P : ∀ (F A) [Field F] [CommRing A] [Algebra F A], Prop}
     (hPQ : ∀ {F A K} [Field F] [CommRing A] [Algebra F A] [Field K] [Algebra F K]
       (f : A →ₐ[F] K), Function.Surjective f → P F A → Q F K)
