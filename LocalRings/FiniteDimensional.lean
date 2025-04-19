@@ -9,7 +9,7 @@ import LocalRings.Basic
 
 ## Main results
 
-* `isLocalRing_if_isLocallyGenerated_findim`: a finite-dimensional algebra is local
+* `IsLocalRing.of_isLocallyGenerated_of_finiteDimensional`: a finite-dimensional algebra is local
   if it is locally generated.
 -/
 
@@ -83,7 +83,7 @@ attribute [-instance] IntermediateField.instCoeOutSubtypeMem in
 open IntermediateField in
 /-- For finite-dimensional extensions `K₁`, `K₂` of `F`, the `F`-algebra `K₁ × K₂`
     is not locally generated. -/
-theorem notLocallyGenerated_KK_if_findim [FiniteDimensional F K₁] [FiniteDimensional F K₂]
+theorem not_isLocallyGenerated_of_findim [FiniteDimensional F K₁] [FiniteDimensional F K₂]
     (p : ℕ) [ExpChar F p] : ¬isLocallyGenerated F (K₁ × K₂) := by
   let E₁ := separableClosure F K₁
   let E₂ := separableClosure F K₂
@@ -164,21 +164,18 @@ variable (F) in
 /-- For finite-dimensional extensions `K₁`, `K₂` of `F`, the `F`-algebra `K₁ × K₂`
     is not locally generated.
     Version to be used with generic theorem. -/
-theorem notLocallyGenerated_KK_if_findim' :
-    UFiniteDimensional F K₁ → UFiniteDimensional F K₂ → ¬isLocallyGenerated F (K₁ × K₂) :=
-  fun fdK₁ fdK₂ ↦
-    have : FiniteDimensional F K₁ := fdK₁
-    have : FiniteDimensional F K₂ := fdK₂
-    let p := ringExpChar F
-    have : ExpChar F p := inferInstance
-    notLocallyGenerated_KK_if_findim p
+theorem not_isLocallyGenerated_of_findim' (fdK₁ : UFiniteDimensional F K₁) (fdK₂ : UFiniteDimensional F K₂) :
+    ¬isLocallyGenerated F (K₁ × K₂) :=
+  have : FiniteDimensional F K₁ := fdK₁
+  have : FiniteDimensional F K₂ := fdK₂
+  let p := ringExpChar F
+  have : ExpChar F p := inferInstance
+  not_isLocallyGenerated_of_findim p
 
 /-- Finite-dimensional algebras are local if they are locally generated. -/
-theorem isLocalRing_if_isLocallyGenerated_findim [Nontrivial A] [FiniteDimensional F A]
+theorem IsLocalRing.of_isLocallyGenerated_of_finiteDimensional [Nontrivial A] [FiniteDimensional F A]
     (hLG : isLocallyGenerated F A) : IsLocalRing A :=
-  have h : UFiniteDimensional F A := ‹FiniteDimensional F A›
-  isLocalAlgebra_if_isLocallyGenerated
-    (fun f hf hA ↦ hA.of_surjective f hf)
-    notLocallyGenerated_KK_if_findim' h hLG
+  have h : UFiniteDimensional F A := ‹_›
+  .of_isLocallyGenerated (fun f hf hA ↦ hA.of_surjective f hf) not_isLocallyGenerated_of_findim' h hLG
 
 end FiniteDimensional

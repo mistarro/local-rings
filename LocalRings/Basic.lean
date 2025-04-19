@@ -17,13 +17,14 @@ import Mathlib.RingTheory.LocalRing.Subring
 
 ## Main results
 
-* `isLocalElement_integral`: if a local element `a` of an `F`-algebra `A` is
+* `isLocalElement.integral`: if a local element `a` of an `F`-algebra `A` is
     integral then it belongs to a finite-dimensional local `F`-subalgebra of `A`.
-* `local_if_all_local`: if all elements of an `F`-algebra are local then the algebra is local.
-* `isLocalAlgebra_if_isLocallyGenerated`: generic theorem used to reduce: given
+* `isLocalRing_of_all_isLocalElement`: if all elements of an `F`-algebra are local then the algebra is local.
+* `IsLocalRing.of_isLocallyGenerated`: generic theorem used to reduce: given
+  * `P`, `Q`: properties of field extensions and commutative algebras, respectively;
   * `hPQ`: proof that `P F A` implies `Q F K` given a surjective `f : A →ₐ[F] K`;
-  * `hKK`: proof that `K₁ × K₂` cannot be locally generated if `Q F K₁` and `Q F K₂`;
-  an `F`-algebra `A` is local if it satisfies `P A` and is locally generated.
+  * `hKK`: proof that `K₁ × K₂` is not locally generated if `Q F K₁` and `Q F K₂`;
+  an `F`-algebra `A` is local if it satisfies `P F A` and is locally generated.
 -/
 
 section Mathlib
@@ -125,7 +126,7 @@ lemma isLocalElement.minpoly_eq_minpoly {K₁ K₂ : Type*} [Field K₁] [Field 
   obtain ⟨B, ⟨_, _, ha⟩⟩ := hl.integral hi
   have : IsArtinianRing B := isArtinian_of_tower F inferInstance
   have : IsReduced B := isReduced_of_injective B.toSubring.subtype (by apply Subtype.coe_injective)
-  letI : Field B := IsArtinianRing.isField_of_isReduced_of_isLocalRing B |>.toField
+  let _ : Field B := IsArtinianRing.isField_of_isReduced_of_isLocalRing B |>.toField
   let a' : B := ⟨a, ha⟩
   let f₁ : B →ₐ[F] K₁ := (AlgHom.fst F K₁ K₂).comp (B.val)
   let f₂ : B →ₐ[F] K₂ := (AlgHom.snd F K₁ K₂).comp (B.val)
@@ -151,10 +152,11 @@ lemma isLocallyGenerated.map_surjective [Nontrivial A'] {f : A →ₐ[F] A'}
   exact top_le_iff.mp <| htop ▸ Submodule.span_mono hsub
 
 /-- Generic theorem: given
+      * `P`, `Q`: properties of field extensions and commutative algebras, respectively;
       * `hPQ`: proof that `P F A` implies `Q F K` for a surjective `f : A →ₐ[F] K`;
       * `hKK`: proof that `K₁ × K₂` cannot be locally generated if `Q F K₁` and `Q F K₂`;
     an `F`-algebra `A` satisfying `P F A` is local if it is locally generated. -/
-theorem isLocalAlgebra_if_isLocallyGenerated.{u} {F : Type*} {A : Type u}
+theorem IsLocalRing.of_isLocallyGenerated.{u} {F : Type*} {A : Type u}
     [Field F] [CommRing A] [Nontrivial A] [Algebra F A]
     {Q : ∀ (F) (K : Type u) [Field F] [Field K] [Algebra F K], Prop}
     {P : ∀ (F A) [Field F] [CommRing A] [Algebra F A], Prop}
@@ -164,10 +166,10 @@ theorem isLocalAlgebra_if_isLocallyGenerated.{u} {F : Type*} {A : Type u}
       [Algebra F K₁] [Algebra F K₂], Q F K₁ → Q F K₂ → ¬isLocallyGenerated F (K₁ × K₂))
     (h : P F A) (hLG : isLocallyGenerated F A) : IsLocalRing A := by
   by_contra hNonLocalA
-  let ⟨K₁, K₂, fK₁, fK₂, f', hf'⟩ := IsLocalRing.exists_surjective_of_not_isLocalRing hNonLocalA
+  let ⟨K₁, K₂, _, _, f', hf'⟩ := IsLocalRing.exists_surjective_of_not_isLocalRing hNonLocalA
   /- introduce compatible `F`-algebra structures -/
-  let algK₁ : Algebra F K₁ := RingHom.fst K₁ K₂ |>.comp f' |>.comp (algebraMap F A) |>.toAlgebra
-  let algK₂ : Algebra F K₂ := RingHom.snd K₁ K₂ |>.comp f' |>.comp (algebraMap F A) |>.toAlgebra
+  let _ : Algebra F K₁ := RingHom.fst K₁ K₂ |>.comp f' |>.comp (algebraMap F A) |>.toAlgebra
+  let _ : Algebra F K₂ := RingHom.snd K₁ K₂ |>.comp f' |>.comp (algebraMap F A) |>.toAlgebra
   /- promote `f'` to an `F`-algebra homomorphism -/
   let f : A →ₐ[F] (K₁ × K₂) := ⟨f', fun _ ↦ rfl⟩
   have hf : Function.Surjective f := hf'

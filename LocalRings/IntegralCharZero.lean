@@ -7,7 +7,7 @@ import LocalRings.Basic
 
 ## Main results
 
-* `isLocalRing_if_isLocallyGenerated_integral`: an integral (equivalently algebraic)
+* `IsLocalRing.of_isLocallyGenerated_of_isIntegral_of_charZero`: an integral (equivalently algebraic)
   algebra over a field of characteristic 0 is local if it is locally generated.
 -/
 
@@ -21,9 +21,8 @@ def UIntegralCharZero : Prop := Algebra.IsIntegral F A ∧ CharZero F
 
 /-- For finite-dimensional extensions `K₁`, `K₂` of `F`, the `F`-algebra `K₁ × K₂`
     is not locally generated. -/
-theorem notLocallyGenerated_KK_if_integral :
-    UIntegralCharZero F K₁ → UIntegralCharZero F K₂ → ¬isLocallyGenerated F (K₁ × K₂) := by
-  intro intK₁ intK₂
+theorem not_isLocallyGenerated_of_isIntegral_of_charZero (intK₁ : UIntegralCharZero F K₁)
+    (intK₂ : UIntegralCharZero F K₂) : ¬isLocallyGenerated F (K₁ × K₂) := by
   have : Algebra.IsIntegral F K₁ := intK₁.1
   have : Algebra.IsIntegral F K₂ := intK₂.1
   have : CharZero F := intK₁.2
@@ -50,11 +49,9 @@ theorem notLocallyGenerated_KK_if_integral :
     exact DFunLike.ne_iff.mpr ⟨(x, 0), by simpa [T]⟩
 
 variable {F A} in
-/-- Integral (equivalently algebraic) algebras are local if they are locally generated. -/
-theorem isLocalRing_if_isLocallyGenerated_integral [Nontrivial A]
-    [Algebra.IsIntegral F A] [CharZero F]
-    (hLG : isLocallyGenerated F A) : IsLocalRing A :=
-  haveI h : UIntegralCharZero F A := ⟨‹_›, ‹_›⟩
-  isLocalAlgebra_if_isLocallyGenerated
-    (fun f hf ⟨_, hChar⟩ ↦ ⟨Algebra.IsIntegral.of_surjective f hf, hChar⟩)
-    notLocallyGenerated_KK_if_integral h hLG
+/-- Integral (equivalently algebraic) algebras of characteristic 0 are local if they are locally generated. -/
+theorem IsLocalRing.of_isLocallyGenerated_of_isIntegral_of_charZero [Nontrivial A]
+    [Algebra.IsIntegral F A] [CharZero F] (hLG : isLocallyGenerated F A) : IsLocalRing A :=
+  have h : UIntegralCharZero F A := ⟨‹_›, ‹_›⟩
+  .of_isLocallyGenerated (fun f hf ⟨_, hChar⟩ ↦ ⟨Algebra.IsIntegral.of_surjective f hf, hChar⟩)
+    not_isLocallyGenerated_of_isIntegral_of_charZero h hLG
