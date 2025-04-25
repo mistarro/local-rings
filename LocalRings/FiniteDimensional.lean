@@ -136,7 +136,7 @@ theorem not_isLocallyGenerated_of_findim [FiniteDimensional F K₁] [FiniteDimen
     rw [trace_eq_finrank_mul_minpoly_nextCoeff, trace_eq_finrank_mul_minpoly_nextCoeff,
       ← mul_assoc, ← mul_assoc, hα, ← Nat.cast_mul, ← Nat.cast_mul]
     apply congrArg fun x : ℕ ↦ (x : F) * _
-    rw [mul_comm, mul_comm a₁' _, ← Nat.mul_div_assoc _ hb₁d, ← Nat.mul_div_assoc _ hb₂d]
+    rw [Nat.div_mul_right_comm hb₁d, Nat.div_mul_right_comm hb₂d]
     apply congrArg fun x ↦ x / d
     dsimp only [b₁, b₂]
     rw [← Module.finrank_mul_finrank F F⟮β₁⟯ E₁, ← Module.finrank_mul_finrank F F⟮β₂⟯ E₂,
@@ -145,13 +145,11 @@ theorem not_isLocallyGenerated_of_findim [FiniteDimensional F K₁] [FiniteDimen
     ring
   /- Show `T ≠ 0` (equivalent to `U ≠ K₁ × K₂`). -/
   · apply (not_congr <| LinearMap.ker_eq_top).mpr
-    cases a_nonzero with
-    | inl ha₁ =>
-        obtain ⟨x, _⟩ := DFunLike.ne_iff.mp <| nontrivial_trace_iteratedFrobenius F p hr₂
-        exact DFunLike.ne_iff.mpr ⟨(0, x), by simpa [T, T₁, ha₁]⟩
-    | inr ha₂ =>
-        obtain ⟨x, _⟩ := DFunLike.ne_iff.mp <| nontrivial_trace_iteratedFrobenius F p hr₁
-        exact DFunLike.ne_iff.mpr ⟨(x, 0), by simpa [T, T₂, ha₂]⟩
+    rcases a_nonzero with ha₁ | ha₂
+    · obtain ⟨x, _⟩ := DFunLike.ne_iff.mp <| nontrivial_trace_iteratedFrobenius F p hr₂
+      exact DFunLike.ne_iff.mpr ⟨(0, x), by simpa [T, T₁, ha₁]⟩
+    · obtain ⟨x, _⟩ := DFunLike.ne_iff.mp <| nontrivial_trace_iteratedFrobenius F p hr₁
+      exact DFunLike.ne_iff.mpr ⟨(x, 0), by simpa [T, T₂, ha₂]⟩
 
 variable (F A) in
 /-- Uniform definition of `FiniteDimensional` to be used in the generic theorem.
