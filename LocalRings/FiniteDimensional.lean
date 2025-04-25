@@ -107,15 +107,6 @@ theorem not_isLocallyGenerated_of_findim [FiniteDimensional F K₁] [FiniteDimen
   let a₂' := b₂ / d
   let a₁ : F := a₁'
   let a₂ : F := a₂'
-  have a_nonzero : a₁ ≠ 0 ∨ a₂ ≠ 0 := by
-    by_contra hc
-    push_neg at hc
-    have hd : 0 < d := Nat.gcd_pos_of_pos_left b₂ (Module.finrank_pos (R := F) (M := E₁))
-    have a_coprime : Nat.Coprime a₁' a₂' := Nat.coprime_div_gcd_div_gcd hd
-    rcases ‹ExpChar F p› with _ | ⟨hprime⟩
-    · simp [a₁, a₂] at hc
-      simp [hc.1, hc.2] at a_coprime
-    · simp [a₁, a₂, CharP.cast_eq_zero_iff F p, ← Nat.dvd_gcd_iff, a_coprime, hprime.not_dvd_one] at hc
   /- Define the semilinear map `T : K₁ × K₂ →ₛₗ[σ] F`. -/
   let T₁ := Algebra.trace F E₁ ∘ₛₗ IsPurelyInseparable.iterateFrobeniusₛₗ F E₁ K₁ p hr₁ ∘ₛₗ LinearMap.fst F K₁ K₂
   let T₂ := Algebra.trace F E₂ ∘ₛₗ IsPurelyInseparable.iterateFrobeniusₛₗ F E₂ K₂ p hr₂ ∘ₛₗ LinearMap.snd F K₁ K₂
@@ -145,11 +136,19 @@ theorem not_isLocallyGenerated_of_findim [FiniteDimensional F K₁] [FiniteDimen
     ring
   /- Show `T ≠ 0` (equivalent to `U ≠ K₁ × K₂`). -/
   · apply (not_congr <| LinearMap.ker_eq_top).mpr
-    rcases a_nonzero with ha₁ | ha₂
-    · obtain ⟨x, _⟩ := DFunLike.ne_iff.mp <| nontrivial_trace_iteratedFrobenius F p hr₂
-      exact DFunLike.ne_iff.mpr ⟨(0, x), by simpa [T, T₁, ha₁]⟩
-    · obtain ⟨x, _⟩ := DFunLike.ne_iff.mp <| nontrivial_trace_iteratedFrobenius F p hr₁
-      exact DFunLike.ne_iff.mpr ⟨(x, 0), by simpa [T, T₂, ha₂]⟩
+    by_cases ha : a₁ = 0 ∧ a₂ = 0
+    · exfalso
+      have a_coprime : Nat.Coprime a₁' a₂' := Nat.coprime_div_gcd_div_gcd <|
+        Nat.gcd_pos_of_pos_left b₂ (Module.finrank_pos (R := F) (M := E₁))
+      rcases ‹ExpChar F p› with _ | ⟨hp⟩
+      · simp [a₁, a₂] at ha
+        simp [ha] at a_coprime
+      · simp [a₁, a₂, CharP.cast_eq_zero_iff F p, ← Nat.dvd_gcd_iff, a_coprime, hp.not_dvd_one] at ha
+    · rcases not_and_or.mp ha with ha₁ | ha₂
+      · obtain ⟨x, _⟩ := DFunLike.ne_iff.mp <| nontrivial_trace_iteratedFrobenius F p hr₂
+        exact DFunLike.ne_iff.mpr ⟨(0, x), by simpa [T, T₁, ha₁]⟩
+      · obtain ⟨x, _⟩ := DFunLike.ne_iff.mp <| nontrivial_trace_iteratedFrobenius F p hr₁
+        exact DFunLike.ne_iff.mpr ⟨(x, 0), by simpa [T, T₂, ha₂]⟩
 
 variable (F A) in
 /-- Uniform definition of `FiniteDimensional` to be used in the generic theorem.
