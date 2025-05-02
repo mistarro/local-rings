@@ -1,6 +1,7 @@
-import Mathlib.FieldTheory.Minpoly.Field
+import Mathlib.FieldTheory.Minpoly.Basic
 import Mathlib.RingTheory.Artinian.Algebra
 import Mathlib.RingTheory.IntegralClosure.Algebra.Basic
+import Mathlib.RingTheory.LocalRing.NonLocalRing
 import Mathlib.RingTheory.LocalRing.RingHom.Basic
 import Mathlib.RingTheory.LocalRing.Subring
 
@@ -26,54 +27,6 @@ import Mathlib.RingTheory.LocalRing.Subring
   * `hKK`: proof that `K₁ × K₂` is not locally generated if `Q F K₁` and `Q F K₂`;
   an `F`-algebra `A` is local if it satisfies `P F A` and is locally generated.
 -/
-
-section Mathlib
-
-namespace IsLocalRing
-
-/- Accepted in Mathlib in `Mathlib.RingTheory.LocalRing.MaximalIdeal.Basic` -/
-/-- If the maximal spectrum of a ring is a singleton, then the ring is local. -/
-theorem of_singleton_maximalSpectrum {R : Type*} [CommSemiring R] [Subsingleton (MaximalSpectrum R)]
-    [Nonempty (MaximalSpectrum R)] : IsLocalRing R :=
-  let m := Classical.arbitrary (MaximalSpectrum R)
-  .of_unique_max_ideal ⟨m.asIdeal, m.isMaximal,
-    fun I hI ↦ MaximalSpectrum.mk.inj <| Subsingleton.elim ⟨I, hI⟩ m⟩
-
-/- Accepted in Mathlib in `Mathlib.RingTheory.LocalRing.NonLocalRing` -/
-/-- For a non-local, nontrivial, commutative (semi)ring, the maximal spectrum is non-trivial. -/
-theorem nontrivial_maximalSpectrum_of_not_isLocalRing {R : Type*} [CommSemiring R] [Nontrivial R]
-    (h : ¬IsLocalRing R) : Nontrivial (MaximalSpectrum R) :=
-  not_subsingleton_iff_nontrivial.mp fun _ ↦ h of_singleton_maximalSpectrum
-
-/- Accepted in Mathlib in `Mathlib.RingTheory.LocalRing.NonLocalRing` -/
-/-- A non-local commutative (semi)ring has two distinct maximal ideals. -/
-theorem exist_maximal_ne_of_not_isLocalRing {R : Type*} [CommSemiring R] [Nontrivial R] (h : ¬IsLocalRing R) :
-    ∃ m₁ m₂ : Ideal R, m₁.IsMaximal ∧ m₂.IsMaximal ∧ m₁ ≠ m₂ :=
-  let ⟨⟨m₁, hm₁⟩, ⟨m₂, hm₂⟩, hm₁m₂⟩ := nontrivial_maximalSpectrum_of_not_isLocalRing h
-  ⟨m₁, m₂, ⟨hm₁, hm₂, by by_contra; apply hm₁m₂; congr⟩⟩
-
-/- Accepted in Mathlib in `Mathlib.RingTheory.LocalRing.NonLocalRing` -/
-/-- There exists a surjective ring homomorphism from a non-local commutative ring onto a product
-of two fields. -/
-theorem exists_surjective_of_not_isLocalRing.{u} {R : Type u} [CommRing R] [Nontrivial R]
-    (h : ¬IsLocalRing R) :
-    ∃ (K₁ K₂ : Type u) (_ : Field K₁) (_ : Field K₂) (f : R →+* K₁ × K₂),
-      Function.Surjective f := by
-  /- get two different maximal ideals and project on the product of quotients -/
-  obtain ⟨m₁, m₂, _, _, hm₁m₂⟩ := exist_maximal_ne_of_not_isLocalRing h
-  let e := Ideal.quotientInfEquivQuotientProd m₁ m₂ <| Ideal.isCoprime_of_isMaximal hm₁m₂
-  let f := e.toRingHom.comp <| Ideal.Quotient.mk (m₁ ⊓ m₂)
-  use R ⧸ m₁, R ⧸ m₂, Ideal.Quotient.field m₁, Ideal.Quotient.field m₂, f
-  apply Function.Surjective.comp e.surjective Ideal.Quotient.mk_surjective
-
-end IsLocalRing
-
-/- Accepted in Mathlib in `Mathlib.Algebra.Algebra.Subalgebra.Lattice` -/
-theorem Algebra.adjoin_singleton_le {R A : Type*} [CommSemiring R] [Semiring A] [Algebra R A]
-    {S : Subalgebra R A} {a : A} (H : a ∈ S) : Algebra.adjoin R {a} ≤ S :=
-  Algebra.adjoin_le (Set.singleton_subset_iff.mpr H)
-
-end Mathlib
 
 variable (F : Type*)
 variable {A A' : Type*}

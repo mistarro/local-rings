@@ -13,49 +13,13 @@ import LocalRings.Basic
   if it is locally generated.
 -/
 
-/- Accepted in Mathlib4 in `Mathlib.Algebra.CharP.Frobenius`. -/
-section
-
-variable {R : Type*} [CommSemiring R] {S : Type*} [CommSemiring S] (g : R →+* S)
-variable (p : ℕ) [ExpChar R p] [ExpChar S p]
-
-lemma RingHom.map_iterateFrobenius (x : R) (n : ℕ) :
-    g (iterateFrobenius R p n x) = iterateFrobenius S p n (g x) := by
-  simp [iterateFrobenius_def]
-
-lemma RingHom.iterateFrobenius_comm (n : ℕ) :
-    g.comp (iterateFrobenius R p n) = (iterateFrobenius S p n).comp g :=
-  ext fun x ↦ map_iterateFrobenius g p x n
-
-end
-
-variable (F : Type*) [Field F] {E : Type*} [Field E] [Algebra F E]
+variable (F : Type*) {E K : Type*} [Field F] [Field E] [Field K]
+variable [Algebra F E] [Algebra E K] [Algebra F K] [IsScalarTower F E K]
+variable [FiniteDimensional F E] [FiniteDimensional E K]
+variable [Algebra.IsSeparable F E] [IsPurelyInseparable E K]
 variable (p : ℕ) [ExpChar F p] [ExpChar E p]
 
-/- Accepted in Mathlib4 in `Mathlib.FieldTheory.PurelyInseparable.PerfectClosure`. -/
-variable {F} in
-/-- For an extension `F ⊆ E` of characteristic `p > 0`, if `a ∈ E` is separable then the minimal polynomial of
-    `a ^ p ^ s` equals the minimal polynomial of `a` mapped via `(⬝ ^ p ^ s)`. -/
-lemma minpoly.iterateFrobenius_of_isSeparable (s : ℕ) {a : E} (hsep : IsSeparable F a) :
-    minpoly F (iterateFrobenius E p s a) = (minpoly F a).map (iterateFrobenius F p s) := by
-  have hai : IsIntegral F a := hsep.isIntegral
-  have hapi : IsIntegral F (iterateFrobenius E p s a) := hai.pow _
-  symm
-  refine Polynomial.eq_of_monic_of_dvd_of_natDegree_le
-    (minpoly.monic hapi)
-    (minpoly.monic hai |>.map _)
-    (minpoly.dvd F (a ^ p ^ s) ?haeval)
-    ?hdeg
-  · simpa using Eq.symm <| (minpoly F a).map_aeval_eq_aeval_map (RingHom.iterateFrobenius_comm _ p s) a
-  · rw [(minpoly F a).natDegree_map_eq_of_injective (iterateFrobenius F p s).injective,
-      ← IntermediateField.adjoin.finrank hai,
-      IntermediateField.adjoin_simple_eq_adjoin_pow_expChar_pow_of_isSeparable F E hsep p s,
-      ← IntermediateField.adjoin.finrank hapi, iterateFrobenius_def]
-
-variable {K : Type*} [Field K] [Algebra E K] [Algebra F K] [IsScalarTower F E K]
-  [FiniteDimensional F E] [Algebra.IsSeparable F E] [FiniteDimensional E K] [IsPurelyInseparable E K]
-
-/-- In characteristic `p > 0`, composition of the trace map for separable part and
+/-- In exponential characteristic `p`, the composition of the trace map for separable part and
     iterated Frobenius for purely inseparable one is non-trivial. -/
 lemma nontrivial_trace_iteratedFrobenius {s : ℕ} (hs : IsPurelyInseparable.exponent E K ≤ s) :
     (Algebra.trace F E).comp (IsPurelyInseparable.iterateFrobeniusₛₗ F E K p hs) ≠ 0 := by
@@ -79,7 +43,6 @@ variable {F A K₁ K₂ : Type*}
 variable [Field F] [CommRing A] [Algebra F A]
 variable [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂]
 
-attribute [-instance] IntermediateField.instCoeOutSubtypeMem in
 open IntermediateField in
 /-- For finite-dimensional extensions `K₁`, `K₂` of `F`, the `F`-algebra `K₁ × K₂`
     is not locally generated. -/
