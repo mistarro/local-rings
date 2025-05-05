@@ -20,7 +20,8 @@ import Mathlib.RingTheory.LocalRing.Subring
 
 * `isLocalElement.integral`: if a local element `a` of an `F`-algebra `A` is
     integral then it belongs to a finite-dimensional local `F`-subalgebra of `A`.
-* `isLocalRing_of_all_isLocalElement`: if all elements of an `F`-algebra are local then the algebra is local.
+* `IsLocalRing.of_all_isLocalElement`: if all elements of an `F`-algebra are local then
+  the algebra is local.
 * `IsLocalRing.of_isLocallyGenerated`: generic theorem used to reduce: given
   * `P`, `Q`: properties of field extensions and commutative algebras, respectively;
   * `hPQ`: proof that `P F A` implies `Q F K` given a surjective `f : A →ₐ[F] K`;
@@ -32,8 +33,8 @@ variable (F : Type*)
 variable {A A' : Type*}
 variable [Field F] [CommRing A] [Algebra F A] [CommRing A'] [Algebra F A']
 
-/-- An element `a` of an `F`-algebra `A` is *local* iff
-    it belongs to a local `F`-subalgebra of `A`. -/
+/-- An element `a` of an `F`-algebra `A` is *local* iff it belongs to
+a local `F`-subalgebra of `A`. -/
 def isLocalElement (a : A) : Prop :=
   ∃ B : Subalgebra F A, IsLocalRing B ∧ a ∈ B
 
@@ -42,10 +43,11 @@ theorem isLocalElement.of_isLocalRing [IsLocalRing A] (a : A) : isLocalElement F
   ⟨⊤, ⟨Subsemiring.topEquiv.symm.isLocalRing, Subsemiring.mem_top a⟩⟩
 
 /-- If all elements of an `F`-algebra are local then the algebra is local. -/
-theorem isLocalRing_of_all_isLocalElement [Nontrivial A] (ha : ∀ a : A, isLocalElement F a) : IsLocalRing A :=
+theorem IsLocalRing.of_all_isLocalElement [Nontrivial A] (ha : ∀ a : A, isLocalElement F a) :
+    IsLocalRing A :=
   .of_isUnit_or_isUnit_one_sub_self
-    fun a ↦ let ⟨B, ⟨_, haB⟩⟩ := ha a; (IsLocalRing.isUnit_or_isUnit_one_sub_self (⟨a, haB⟩ : B)).imp
-      (.map B.subtype) (.map B.subtype)
+    fun a ↦ let ⟨B, ⟨_, haB⟩⟩ := ha a; let a' : B := ⟨a, haB⟩
+      (IsLocalRing.isUnit_or_isUnit_one_sub_self a').imp (.map B.subtype) (.map B.subtype)
 
 variable {F}
 
@@ -62,8 +64,8 @@ theorem isLocalElement.map [Nontrivial A'] (f : A →ₐ[F] A')
   ⟨g.range, ⟨.of_surjective' (R := B) g.rangeRestrict (g.rangeRestrict_surjective),
     g.mem_range.mpr ⟨⟨a, haB⟩, rfl⟩⟩⟩
 
-/-- If a local element `a` of an `F`-algebra `A` is integral then
-    it belongs to a finite-dimensional local `F`-subalgebra of `A`. -/
+/-- If a local element `a` of an `F`-algebra `A` is integral then it belongs to
+a finite-dimensional local `F`-subalgebra of `A`. -/
 theorem isLocalElement.integral {a : A} (hi : IsIntegral F a) (hl : isLocalElement F a) :
     ∃ B : Subalgebra F A, IsLocalRing B ∧ FiniteDimensional F B ∧ a ∈ B :=
   let B := Algebra.adjoin F {a}
@@ -73,8 +75,8 @@ theorem isLocalElement.integral {a : A} (hi : IsIntegral F a) (hl : isLocalEleme
   ⟨B, .of_subring' (Algebra.adjoin_singleton_le ha) hu, hfd, Algebra.self_mem_adjoin_singleton F a⟩
 
 /-- If `(a₁, a₂) : K₁ × K₂` is local then `minpoly F a₁ = minpoly F a₂`. -/
-lemma isLocalElement.minpoly_eq_minpoly {K₁ K₂ : Type*} [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂]
-    {a : K₁ × K₂} (hi : IsIntegral F a) (hl : isLocalElement F a) :
+theorem isLocalElement.minpoly_eq_minpoly {K₁ K₂ : Type*} [Field K₁] [Field K₂]
+    [Algebra F K₁] [Algebra F K₂] {a : K₁ × K₂} (hi : IsIntegral F a) (hl : isLocalElement F a) :
     minpoly F a.1 = minpoly F a.2 := by
   obtain ⟨B, ⟨_, _, ha⟩⟩ := hl.integral hi
   have : IsArtinianRing B := isArtinian_of_tower F inferInstance
@@ -83,32 +85,35 @@ lemma isLocalElement.minpoly_eq_minpoly {K₁ K₂ : Type*} [Field K₁] [Field 
   let a' : B := ⟨a, ha⟩
   let f₁ : B →ₐ[F] K₁ := (AlgHom.fst F K₁ K₂).comp (B.val)
   let f₂ : B →ₐ[F] K₂ := (AlgHom.snd F K₁ K₂).comp (B.val)
-  simpa using (minpoly.algHom_eq f₁ f₁.injective a').trans (minpoly.algHom_eq f₂ f₂.injective a').symm
+  simpa using (minpoly.algHom_eq f₁ f₁.injective a').trans
+    (minpoly.algHom_eq f₂ f₂.injective a').symm
 
 variable (F A) in
 /-- Set of all local elements of an `F`-algebra `A`. -/
 def localElements : Set A := {a : A | isLocalElement F a}
 
 variable (F A) in
-/-- An `F`-algebra `A` is *locally generated* if the local elements of `A`
-    generate `A` as a vector space over `F`. -/
+/-- An `F`-algebra `A` is *locally generated* if the local elements of `A` generate `A` as
+a vector space over `F`. -/
 def isLocallyGenerated : Prop := Submodule.span F (localElements F A) = ⊤
 
 /-- If `F`-algebra `A` is locally generated and `f : A →ₐ[F] A'` is a surjective `F`-algebra
-    homomorphism, then `F`-algebra `A'` is also locally generated. -/
+homomorphism, then `F`-algebra `A'` is also locally generated. -/
 lemma isLocallyGenerated.map_surjective [Nontrivial A'] {f : A →ₐ[F] A'}
     (hf : Function.Surjective f) (h : isLocallyGenerated F A) : isLocallyGenerated F A' := by
   let lA := localElements F A
   let lA' := localElements F A'
   have hsub : f '' lA ⊆ lA' := fun y ⟨x, hx, hfxy⟩ ↦ hfxy ▸ hx.map f
-  have htop := LinearMap.range_eq_top_of_surjective f hf ▸ Submodule.map_top f ▸ h ▸ Submodule.map_span f lA
+  have htop := LinearMap.range_eq_top_of_surjective f hf ▸ Submodule.map_top f ▸ h ▸
+    Submodule.map_span f lA
   exact top_le_iff.mp <| htop ▸ Submodule.span_mono hsub
 
-/-- Generic theorem: given
-      * `P`, `Q`: properties of field extensions and commutative algebras, respectively;
-      * `hPQ`: proof that `P F A` implies `Q F K` for a surjective `f : A →ₐ[F] K`;
-      * `hKK`: proof that `K₁ × K₂` cannot be locally generated if `Q F K₁` and `Q F K₂`;
-    an `F`-algebra `A` satisfying `P F A` is local if it is locally generated. -/
+/-- Generic theorem.
+Given
+  * `P`, `Q`: properties of field extensions and commutative algebras, respectively;
+  * `hPQ`: proof that `P F A` implies `Q F K` for a surjective `f : A →ₐ[F] K`;
+  * `hKK`: proof that `K₁ × K₂` cannot be locally generated if `Q F K₁` and `Q F K₂`;
+an `F`-algebra `A` satisfying `P F A` is local if it is locally generated. -/
 theorem IsLocalRing.of_isLocallyGenerated.{u} {F : Type*} {A : Type u}
     [Field F] [CommRing A] [Nontrivial A] [Algebra F A]
     {Q : ∀ (F) (K : Type u) [Field F] [Field K] [Algebra F K], Prop}

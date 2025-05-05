@@ -20,8 +20,8 @@ variable [Algebra.IsSeparable F E] [IsPurelyInseparable E K]
 variable (p : ℕ) [ExpChar F p] [ExpChar E p]
 
 /-- In exponential characteristic `p`, the composition of the trace map for separable part and
-    iterated Frobenius for purely inseparable one is non-trivial. -/
-lemma nontrivial_trace_iteratedFrobenius {s : ℕ} (hs : IsPurelyInseparable.exponent E K ≤ s) :
+iterated Frobenius for purely inseparable one is non-trivial. -/
+theorem trace_comp_iterateFrobenius_ne_zero {s : ℕ} (hs : IsPurelyInseparable.exponent E K ≤ s) :
     (Algebra.trace F E).comp (IsPurelyInseparable.iterateFrobeniusₛₗ F E K p hs) ≠ 0 := by
   have : ExpChar E p := expChar_of_injective_ringHom (algebraMap F E).injective p
   simp [DFunLike.ne_iff]
@@ -34,7 +34,8 @@ lemma nontrivial_trace_iteratedFrobenius {s : ℕ} (hs : IsPurelyInseparable.exp
   constructor
   · rwa [← IntermediateField.adjoin_simple_eq_adjoin_pow_expChar_pow_of_isSeparable F E hsep p s]
   · rw [← iterateFrobenius_def, minpoly.iterateFrobenius_of_isSeparable p s hsep,
-      Polynomial.nextCoeff_map (iterateFrobenius F p s).injective, iterateFrobenius_def, neg_ne_zero]
+      Polynomial.nextCoeff_map (iterateFrobenius F p s).injective, iterateFrobenius_def,
+      neg_ne_zero]
     exact pow_ne_zero _ <| neg_ne_zero.mp hc
 
 section FiniteDimensional
@@ -45,7 +46,7 @@ variable [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂]
 
 open IntermediateField in
 /-- For finite-dimensional extensions `K₁`, `K₂` of `F`, the `F`-algebra `K₁ × K₂`
-    is not locally generated. -/
+is not locally generated. -/
 theorem not_isLocallyGenerated_of_findim [FiniteDimensional F K₁] [FiniteDimensional F K₂]
     (p : ℕ) [ExpChar F p] : ¬isLocallyGenerated F (K₁ × K₂) := by
   let E₁ := separableClosure F K₁
@@ -71,12 +72,15 @@ theorem not_isLocallyGenerated_of_findim [FiniteDimensional F K₁] [FiniteDimen
   let a₁ : F := a₁'
   let a₂ : F := a₂'
   /- Define the semilinear map `T : K₁ × K₂ →ₛₗ[σ] F`. -/
-  let T₁ := Algebra.trace F E₁ ∘ₛₗ IsPurelyInseparable.iterateFrobeniusₛₗ F E₁ K₁ p hr₁ ∘ₛₗ LinearMap.fst F K₁ K₂
-  let T₂ := Algebra.trace F E₂ ∘ₛₗ IsPurelyInseparable.iterateFrobeniusₛₗ F E₂ K₂ p hr₂ ∘ₛₗ LinearMap.snd F K₁ K₂
+  let T₁ := Algebra.trace F E₁ ∘ₛₗ IsPurelyInseparable.iterateFrobeniusₛₗ F E₁ K₁ p hr₁ ∘ₛₗ
+    LinearMap.fst F K₁ K₂
+  let T₂ := Algebra.trace F E₂ ∘ₛₗ IsPurelyInseparable.iterateFrobeniusₛₗ F E₂ K₂ p hr₂ ∘ₛₗ
+    LinearMap.snd F K₁ K₂
   let T : K₁ × K₂ →ₛₗ[_] F := a₂ • T₁ - a₁ • T₂
   let U : Subspace F (K₁ × K₂) := LinearMap.ker T
   /- Reduce the goal to show that `U` is a proper subspace and that local elements are in `U`. -/
-  refine lt_top_iff_ne_top.mp <| lt_of_le_of_lt (b := U) (Submodule.span_le.mpr ?_) (lt_top_iff_ne_top.mpr ?_)
+  refine lt_top_iff_ne_top.mp <| lt_of_le_of_lt (b := U) (Submodule.span_le.mpr ?_)
+    (lt_top_iff_ne_top.mpr ?_)
   /- Show that `T` vanishes on local elements. -/
   · intro ⟨α₁, α₂⟩ hα
     replace hα := hα.pow _ |>.minpoly_eq_minpoly (.of_finite F (α₁ ^ p ^ r, α₂ ^ p ^ r))
@@ -106,26 +110,25 @@ theorem not_isLocallyGenerated_of_findim [FiniteDimensional F K₁] [FiniteDimen
       rcases ‹ExpChar F p› with _ | ⟨hp⟩
       · simp [a₁, a₂] at ha
         simp [ha] at a_coprime
-      · simp [a₁, a₂, CharP.cast_eq_zero_iff F p, ← Nat.dvd_gcd_iff, a_coprime, hp.not_dvd_one] at ha
+      · simp [a₁, a₂, CharP.cast_eq_zero_iff F p, ← Nat.dvd_gcd_iff, a_coprime,
+          hp.not_dvd_one] at ha
     · rcases not_and_or.mp ha with ha₁ | ha₂
-      · obtain ⟨x, _⟩ := DFunLike.ne_iff.mp <| nontrivial_trace_iteratedFrobenius F p hr₂
+      · obtain ⟨x, _⟩ := DFunLike.ne_iff.mp <| trace_comp_iterateFrobenius_ne_zero F p hr₂
         exact DFunLike.ne_iff.mpr ⟨(0, x), by simpa [T, T₁, ha₁]⟩
-      · obtain ⟨x, _⟩ := DFunLike.ne_iff.mp <| nontrivial_trace_iteratedFrobenius F p hr₁
+      · obtain ⟨x, _⟩ := DFunLike.ne_iff.mp <| trace_comp_iterateFrobenius_ne_zero F p hr₁
         exact DFunLike.ne_iff.mpr ⟨(x, 0), by simpa [T, T₂, ha₂]⟩
 
 variable (F A) in
 /-- Uniform definition of `FiniteDimensional` to be used in the generic theorem.
-    Original definition is:
-      FiniteDimensional (K : Type u_1) (V : Type u_2) [DivisionRing K] [AddCommGroup V] [Module K V] : Prop
-  -/
+Original definition is:
+  FiniteDimensional (K V : Type*) [DivisionRing K] [AddCommGroup V] [Module K V] : Prop -/
 def UFiniteDimensional : Prop := FiniteDimensional F A
 
 variable (F) in
-/-- For finite-dimensional extensions `K₁`, `K₂` of `F`, the `F`-algebra `K₁ × K₂`
-    is not locally generated.
-    Version to be used with generic theorem. -/
-theorem not_isLocallyGenerated_of_findim' (fdK₁ : UFiniteDimensional F K₁) (fdK₂ : UFiniteDimensional F K₂) :
-    ¬isLocallyGenerated F (K₁ × K₂) :=
+/-- For finite-dimensional extensions `K₁`, `K₂` of `F`, the `F`-algebra `K₁ × K₂` is not
+locally generated. Version to be used with generic theorem. -/
+theorem not_isLocallyGenerated_of_findim' (fdK₁ : UFiniteDimensional F K₁)
+    (fdK₂ : UFiniteDimensional F K₂) : ¬isLocallyGenerated F (K₁ × K₂) :=
   have : FiniteDimensional F K₁ := fdK₁
   have : FiniteDimensional F K₂ := fdK₂
   let p := ringExpChar F
@@ -133,9 +136,10 @@ theorem not_isLocallyGenerated_of_findim' (fdK₁ : UFiniteDimensional F K₁) (
   not_isLocallyGenerated_of_findim p
 
 /-- Finite-dimensional algebras are local if they are locally generated. -/
-theorem IsLocalRing.of_isLocallyGenerated_of_finiteDimensional [Nontrivial A] [FiniteDimensional F A]
-    (hLG : isLocallyGenerated F A) : IsLocalRing A :=
+theorem IsLocalRing.of_isLocallyGenerated_of_finiteDimensional [Nontrivial A]
+    [FiniteDimensional F A] (hLG : isLocallyGenerated F A) : IsLocalRing A :=
   have h : UFiniteDimensional F A := ‹_›
-  .of_isLocallyGenerated (fun f hf hA ↦ hA.of_surjective f hf) not_isLocallyGenerated_of_findim' h hLG
+  .of_isLocallyGenerated (fun f hf hA ↦ hA.of_surjective f hf)
+    not_isLocallyGenerated_of_findim' h hLG
 
 end FiniteDimensional

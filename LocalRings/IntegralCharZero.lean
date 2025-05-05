@@ -7,8 +7,8 @@ import LocalRings.Basic
 
 ## Main results
 
-* `IsLocalRing.of_isLocallyGenerated_of_isIntegral_of_charZero`: an integral (equivalently algebraic)
-  algebra over a field of characteristic 0 is local if it is locally generated.
+* `IsLocalRing.of_isLocallyGenerated_of_isIntegral_of_charZero`: an integral (equivalently
+  algebraic) algebra over a field of characteristic 0 is local if it is locally generated.
 -/
 
 variable (F A K₁ K₂ : Type*)
@@ -16,11 +16,11 @@ variable [Field F] [CommRing A] [Algebra F A]
 variable [Field K₁] [Field K₂] [Algebra F K₁] [Algebra F K₂]
 
 /-- Uniform definition of *algebraic and of characteristic zero* to be used in
-    the generic theorem. -/
+the generic theorem. -/
 def UIntegralCharZero : Prop := Algebra.IsIntegral F A ∧ CharZero F
 
-/-- For finite-dimensional extensions `K₁`, `K₂` of `F`, the `F`-algebra `K₁ × K₂`
-    is not locally generated. -/
+/-- For finite-dimensional extensions `K₁`, `K₂` of `F`, the `F`-algebra `K₁ × K₂` is not
+locally generated. -/
 theorem not_isLocallyGenerated_of_isIntegral_of_charZero (intK₁ : UIntegralCharZero F K₁)
     (intK₂ : UIntegralCharZero F K₂) : ¬isLocallyGenerated F (K₁ × K₂) := by
   have : Algebra.IsIntegral F K₁ := intK₁.1
@@ -31,7 +31,8 @@ theorem not_isLocallyGenerated_of_isIntegral_of_charZero (intK₁ : UIntegralCha
       Algebra.normalizedTrace F K₂ ∘ₗ LinearMap.snd F K₁ K₂
   let U : Subspace F (K₁ × K₂) := LinearMap.ker T
   /- Reduce the goal to show that `U` is a proper subspace and that local elements are in `U`. -/
-  refine lt_top_iff_ne_top.mp <| lt_of_le_of_lt (b := U) (Submodule.span_le.mpr ?_) (lt_top_iff_ne_top.mpr ?_)
+  refine lt_top_iff_ne_top.mp <| lt_of_le_of_lt (b := U) (Submodule.span_le.mpr ?_)
+    (lt_top_iff_ne_top.mpr ?_)
   /- Show that `T` vanishes on local elements. -/
   · intro α hαl
     have hα₁i := Algebra.isIntegral_def.mp ‹_› α.1
@@ -49,7 +50,8 @@ theorem not_isLocallyGenerated_of_isIntegral_of_charZero (intK₁ : UIntegralCha
     exact DFunLike.ne_iff.mpr ⟨(x, 0), by simpa [T]⟩
 
 variable {F A} in
-/-- Integral (equivalently algebraic) algebras of characteristic 0 are local if they are locally generated. -/
+/-- Integral (equivalently algebraic) algebras of characteristic 0 are local if they are
+locally generated. -/
 theorem IsLocalRing.of_isLocallyGenerated_of_isIntegral_of_charZero [Nontrivial A]
     [Algebra.IsIntegral F A] [CharZero F] (hLG : isLocallyGenerated F A) : IsLocalRing A :=
   have h : UIntegralCharZero F A := ⟨‹_›, ‹_›⟩
