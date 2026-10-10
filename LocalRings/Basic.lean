@@ -1,5 +1,6 @@
 import Mathlib.FieldTheory.Minpoly.Basic
 import Mathlib.RingTheory.Artinian.Algebra
+import Mathlib.RingTheory.Artinian.Ring
 import Mathlib.RingTheory.IntegralClosure.Algebra.Basic
 import Mathlib.RingTheory.LocalRing.NonLocalRing
 import Mathlib.RingTheory.LocalRing.RingHom.Basic
@@ -85,8 +86,7 @@ theorem isLocalElement.minpoly_eq_minpoly {K₁ K₂ : Type*} [Field K₁] [Fiel
   let a' : B := ⟨a, ha⟩
   let f₁ : B →ₐ[F] K₁ := (AlgHom.fst F K₁ K₂).comp (B.val)
   let f₂ : B →ₐ[F] K₂ := (AlgHom.snd F K₁ K₂).comp (B.val)
-  simpa using (minpoly.algHom_eq f₁ f₁.injective a').trans
-    (minpoly.algHom_eq f₂ f₂.injective a').symm
+  exact (minpoly.algHom_eq f₁ f₁.injective a').trans (minpoly.algHom_eq f₂ f₂.injective a').symm
 
 variable (F A) in
 /-- Set of all local elements of an `F`-algebra `A`. -/
@@ -104,8 +104,8 @@ lemma isLocallyGenerated.map_surjective [Nontrivial A'] {f : A →ₐ[F] A'}
   let lA := localElements F A
   let lA' := localElements F A'
   have hsub : f '' lA ⊆ lA' := fun y ⟨x, hx, hfxy⟩ ↦ hfxy ▸ hx.map f
-  have htop := LinearMap.range_eq_top_of_surjective f hf ▸ Submodule.map_top f ▸ h ▸
-    Submodule.map_span f lA
+  have htop := LinearMap.range_eq_top_of_surjective f.toLinearMap hf ▸
+    Submodule.map_top f.toLinearMap ▸ h ▸ Submodule.map_span f.toLinearMap lA
   exact top_le_iff.mp <| htop ▸ Submodule.span_mono hsub
 
 /-- Generic theorem.
